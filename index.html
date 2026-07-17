@@ -4,12 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ระบบแจ้งยอดขายประจำวัน - thaiyuh</title>
-  <!-- Bootstrap CSS สำหรับดีไซน์ที่สวยงามและรองรับมือถือ -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/markdown.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+  <!-- 🌟 มะขวิดแก้ลิงก์ Bootstrap ตัวดึงความสวยงามให้ถูกต้องแล้วค่ะ -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
   <style>
     body {
       background-color: #f8f9fa;
-      font-family: 'ChulaCharasNew', 'Helvetica Neue', Arial, sans-serif;
+      font-family: Arial, sans-serif;
       padding-top: 2rem;
     }
     .sales-container {
@@ -68,14 +68,10 @@
       </div>
     </div>
 
-    <!-- พี่เจตสามารถใส่ฟอร์มกรอกยอดขายต่อท้ายตรงนี้ได้เลยนะคะ มะขวิดทำโครงรับข้อมูลพนักงานไว้ให้หลักๆ แล้วค่ะ -->
-
   </div>
 </div>
 
-<!-- ส่วนควบคุมระบบดึงข้อมูลจาก Google Apps Script (JavaScript) -->
 <script>
-// ลิงก์ระบบหลังบ้านและ API Key ตัวล่าสุดของพี่เจต
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwA7wu8vbMCa1lWxXhiosOOB6nO2TIQS4dhgPjYz8ZdoEx2ZqLNV9LB6snN73igLgYR/exec";
 const API_KEY = "AQ.Ab8RN6IkB0O6am2b2A6hwuswMQHRKkzxcwUpgHIKLkA1XAM9rw";
 
@@ -85,7 +81,6 @@ function searchEmployee() {
   const empCodeInput = document.getElementById('empCode').value.trim();
   const statusMessage = document.getElementById('statusMessage');
   
-  // ล้างข้อมูลเก่าบนหน้าจอทันทีขณะที่พี่เจตกำลังพิมพ์ใหม่
   clearEmployeeFields();
 
   if (!empCodeInput) {
@@ -94,23 +89,20 @@ function searchEmployee() {
     return;
   }
 
-  // ใช้ Debounce หน่วงเวลาพิมพ์ 0.5 วินาที เพื่อไม่ให้ระบบยิงถี่จนเกินไปตอนกดพิมพ์เลขแต่ละตัวค่ะ
   clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
     statusMessage.innerText = "⏳ กำลังค้นหาข้อมูลในระบบ...";
     statusMessage.style.color = "#007bff";
 
-    // ผูก Parameters ส่งสัญญาไปหาแผ่นงานแท็บ "พนักงาน" หลังบ้าน
     const finalUrl = `${WEB_APP_URL}?action=getEmployee&empCode=${encodeURIComponent(empCodeInput)}&apiKey=${API_KEY}`;
 
     fetch(finalUrl)
       .then(response => {
-        if (!response.ok) throw new Error('ไม่สามารถเชื่อมต่อกับระบบเครือข่ายหลังบ้านได้');
+        if (!response.ok) throw new Error('ไม่สามารถเชื่อมต่อกับระบบหลังบ้านได้');
         return response.json();
       })
       .then(result => {
         if (result.status === 'success') {
-          // ดึงข้อมูลพ่นลงช่องแสดงผลแต่ละช่องเรียบร้อย
           document.getElementById('empName').innerText = result.data.name;
           document.getElementById('empNickname').innerText = result.data.nickname;
           document.getElementById('branchCode').innerText = result.data.branchCode;
@@ -128,13 +120,12 @@ function searchEmployee() {
       })
       .catch(error => {
         console.error('Fetch Error:', error);
-        statusMessage.innerText = "🛑 การเชื่อมต่อขัดข้อง กรุณาตรวจสอบลิงก์ Web App อีกครั้ง";
+        statusMessage.innerText = "🛑 การเชื่อมต่อขัดข้อง กรุณาตรวจสอบระบบอีกครั้ง";
         statusMessage.style.color = "#dc3545";
       });
   }, 500);
 }
 
-// ฟังก์ชันล้างช่องข้อมูลให้กลับเป็นค่าเริ่มต้น
 function clearEmployeeFields() {
   document.getElementById('empName').innerText = "-";
   document.getElementById('empNickname').innerText = "-";
