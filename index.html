@@ -1,82 +1,56 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Daily sales report</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
-  <style>
-    body { background-color: #f8f9fa; padding-top: 2rem; }
-    .container { max-width: 600px; background: #ffffff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>ใบรายการขายประจำวัน</title>
+<!-- ... โค้ด CSS และ Header เดิมของพี่เจตทั้งหมด ... -->
+<style>
+  /* โค้ด CSS เดิมของพี่เจตทั้งหมดที่ส่งมา */
+  /* (แปะ CSS เดิมของพี่เจตใส่ตรงนี้ได้เลยค่ะ) */
+</style>
 </head>
 <body>
 
-<div class="container">
-  <h3>📝 Daily sales report.</h3>
-  <p class="text-muted">Thai Yuh Company Limited (thaiyuh)</p>
-  <hr>
-
-  <!-- ส่วนค้นหาพนักงาน -->
-  <label><strong>Employee ID</strong></label>
-  <input type="text" id="empCode" class="form-control" placeholder="Enter ID" oninput="searchEmployee()">
-  <small id="statusMessage" class="text-danger">System error: undefined</small>
-
-  <div class="card mt-3">
-    <div class="card-body">
-      <h5>📋 Employee Information</h5>
-      <p><strong>Name-Surname:</strong> <span id="empName">-</span></p>
-      <p><strong>nickname:</strong> <span id="empNickname">-</span></p>
-      <p><strong>Branch code:</strong> <span id="branchCode">-</span></p>
-      <p><strong>Branch Name:</strong> <span id="branchName">-</span></p>
-    </div>
-  </div>
-
-  <!-- ส่วนรายการขาย (ที่หายไป) -->
-  <hr>
-  <h5>💰 Sales Details</h5>
-  <div class="form-group">
-    <label>Sales Amount</label>
-    <input type="number" id="salesAmount" class="form-control" placeholder="0.00">
-  </div>
-  <button class="btn btn-primary" onclick="submitSales()">Submit Sales</button>
-</div>
+<!-- เนื้อหา HTML ทั้งหมดของพี่เจต -->
+<!-- (นำเนื้อหา HTML เดิมตั้งแต่ <body> จนถึง <script> มาวางที่นี่ค่ะ) -->
 
 <script>
-const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwA7wu8vbMCa1lWxXhiosOOB6nO2TIQS4dhgPjYz8ZdoEx2ZqLNV9LB6snN73igLgYR/exec";
-const API_KEY = "AQ.Ab8RN6IkB0O6am2b2A6hwuswMQHRKkzxcwUpgHIKLkA1XAM9rw";
+// =====================================================================
+// ลิงก์ Web App (พี่เจตใช้ของเดิมได้เลยค่ะ)
+const API_URL = "https://script.google.com/macros/s/AKfycbx27a3ZCoBP18F98dNrEbX9dk0DhGtmxp8K3kQIttaWqRxv7ilCKUOuhf3C4Fu1vQTv/exec";
 
-// ฟังก์ชันค้นหาพนักงาน
-function searchEmployee() {
-  const empCode = document.getElementById('empCode').value.trim();
-  const statusMessage = document.getElementById('statusMessage');
-  if(!empCode) return;
+// ฟังก์ชันค้นหาพนักงานที่แก้ไขให้ดึงข้อมูลลงช่อง ID เดิมของพี่เจต
+document.getElementById('empCode').addEventListener('input', function() {
+    const code = this.value;
+    if (code.length < 3) return; // หรือตามความยาวรหัสพนักงานจริง
 
-  statusMessage.innerText = "กำลังค้นหา...";
-  statusMessage.style.color = "blue";
+    fetch(`${API_URL}?action=getEmployee&empCode=${code}`)
+        .then(res => res.json())
+        .then(result => {
+            if (result.status === 'success') {
+                document.getElementById('afFirstName').innerText = result.data.name;
+                document.getElementById('afLastName').innerText = result.data.lastname || "";
+                document.getElementById('afNickname').innerText = result.data.nickname;
+                document.getElementById('afBranch').innerText = result.data.branchName;
+                document.getElementById('afBranchCode').innerText = result.data.branchCode;
+                document.getElementById('afEmpCodeRow').style.display = 'flex';
+                document.getElementById('afEmpCode').innerText = code;
+                showToast("ดึงข้อมูลพนักงานเรียบร้อย");
+            } else {
+                showToast("ไม่พบข้อมูลพนักงาน");
+            }
+        });
+});
 
-  fetch(`${WEB_APP_URL}?action=getEmployee&empCode=${encodeURIComponent(empCode)}&apiKey=${API_KEY}`)
-    .then(res => res.json())
-    .then(result => {
-      if(result.status === 'success') {
-        document.getElementById('empName').innerText = result.data.name;
-        document.getElementById('empNickname').innerText = result.data.nickname;
-        document.getElementById('branchCode').innerText = result.data.branchCode;
-        document.getElementById('branchName').innerText = result.data.branchName;
-        statusMessage.innerText = "พบข้อมูล";
-        statusMessage.style.color = "green";
-      } else {
-        statusMessage.innerText = "ไม่พบข้อมูล";
-        statusMessage.style.color = "red";
-      }
-    })
-    .catch(err => statusMessage.innerText = "Error: " + err);
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2000);
 }
 
-// ฟังก์ชันส่งรายการขาย (พี่เจตสามารถเพิ่มเติมคำสั่งส่งข้อมูลต่อได้เลยค่ะ)
-function submitSales() {
-  alert("บันทึกรายการขายเรียบร้อยแล้วค่ะ!");
-}
+// ... ใส่ JavaScript ส่วนที่เหลือของพี่เจตต่อจากตรงนี้ได้เลยค่ะ ...
 </script>
 </body>
 </html>
