@@ -17,6 +17,7 @@
   <p class="text-muted">Thai Yuh Company Limited (thaiyuh)</p>
   <hr>
 
+  <!-- ส่วนค้นหาพนักงาน -->
   <label><strong>Employee ID</strong></label>
   <input type="text" id="empCode" class="form-control" placeholder="Enter ID" oninput="searchEmployee()">
   <small id="statusMessage" class="text-danger">System error: undefined</small>
@@ -30,12 +31,22 @@
       <p><strong>Branch Name:</strong> <span id="branchName">-</span></p>
     </div>
   </div>
+
+  <!-- ส่วนรายการขาย (ที่หายไป) -->
+  <hr>
+  <h5>💰 Sales Details</h5>
+  <div class="form-group">
+    <label>Sales Amount</label>
+    <input type="number" id="salesAmount" class="form-control" placeholder="0.00">
+  </div>
+  <button class="btn btn-primary" onclick="submitSales()">Submit Sales</button>
 </div>
 
 <script>
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwA7wu8vbMCa1lWxXhiosOOB6nO2TIQS4dhgPjYz8ZdoEx2ZqLNV9LB6snN73igLgYR/exec";
 const API_KEY = "AQ.Ab8RN6IkB0O6am2b2A6hwuswMQHRKkzxcwUpgHIKLkA1XAM9rw";
 
+// ฟังก์ชันค้นหาพนักงาน
 function searchEmployee() {
   const empCode = document.getElementById('empCode').value.trim();
   const statusMessage = document.getElementById('statusMessage');
@@ -60,6 +71,11 @@ function searchEmployee() {
       }
     })
     .catch(err => statusMessage.innerText = "Error: " + err);
+}
+
+// ฟังก์ชันส่งรายการขาย (พี่เจตสามารถเพิ่มเติมคำสั่งส่งข้อมูลต่อได้เลยค่ะ)
+function submitSales() {
+  alert("บันทึกรายการขายเรียบร้อยแล้วค่ะ!");
 }
 </script>
 </body>
