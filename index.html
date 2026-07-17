@@ -1133,27 +1133,42 @@ function resetAutofillBox(){
   document.getElementById('afBranchCode').textContent = '-';
 }
 
-function updateEmployee(){
+function updateEmployee() {
   const code = empCodeInput.value.trim();
-  if(!code){ resetAutofillBox(); return; }
-  const isSub = document.getElementById('substituteToggle').checked;
+  if (!code) {
+    resetAutofillBox();
+    return;
+  }
 
-  const apply = (emp) => {
-    if(emp && emp.found !== false){
-      const { first, last } = splitName(emp.name);
-      document.getElementById('afFirstName').textContent = first;
-      document.getElementById('afLastName').textContent = last;
-      document.getElementById('afNickname').textContent = emp.nickname || '-';
-      document.getElementById('afBranch').textContent = emp.branch;
-      document.getElementById('afBranchCode').textContent = emp.branchCode;
-      if(!isSub){ resolvedBranchName = emp.branch; loadBranchCarryover(emp.branchCode); }
-    } else {
+  const isSub = document.getElementById("substituteToggle").checked;
+
+  fetch(`${API_URL}?action=lookupEmployee&empCode=${encodeURIComponent(code)}`)
+    .then(r => r.json())
+    .then(emp => {
+
+      if (!emp.found) {
+        resetAutofillBox();
+        return;
+      }
+
+      const parts = (emp.name || "").trim().split(/\s+/);
+
+      document.getElementById("afFirstName").textContent = parts[0] || "-";
+      document.getElementById("afLastName").textContent = parts.slice(1).join(" ") || "-";
+      document.getElementById("afNickname").textContent = emp.nickname || "-";
+      document.getElementById("afBranch").textContent = emp.branch || "-";
+      document.getElementById("afBranchCode").textContent = emp.branchCode || "-";
+
+      if (!isSub && emp.branchCode) {
+        resolvedBranchName = emp.branch;
+        loadBranchCarryover(emp.branchCode);
+      }
+
+    })
+    .catch(err => {
+      console.error(err);
       resetAutofillBox();
-    }
-  };
-
-  fetch(`${API_URL}?action=lookupEmployee&code=${encodeURIComponent(code)}`)
-    .then(r=>r.json()).then(apply).catch(()=> resetAutofillBox());
+    });
 }
 
 // ---------- MAIN CALCULATION ----------
