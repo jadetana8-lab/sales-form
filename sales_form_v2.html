@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>ใบรายการขายประจำวัน</title>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D5FA8">
+<link class="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ใบขาย">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#1B2B29;
+    --paper:#EEF5FC;
+    --card:#FFFFFF;
+    --teal:#1D5FA8;
+    --teal-dark:#123A66;
+    --teal-soft:#DCEAFB;
+    --caramel:#C9863F;
+    --caramel-soft:#F6E8D5;
+    --line:#DDD6C7;
+    --red:#B3382C;
+    --red-soft:#FBE7E3;
+    --orange:#C97A1B;
+    --orange-soft:#FBEBD4;
+    --green:#2F8F5B;
+    --green-soft:#E5F3EA;
+    --muted:#7A756A;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Noto Sans Thai',sans-serif; background:var(--paper); color:var(--ink); padding-bottom:120px; }
+  .topbar{ background:var(--teal); color:#fff; padding:18px 20px 22px; border-radius:0 0 22px 22px; position:relative; overflow:hidden; }
+  .back-pill{
+    display:inline-block; color:#fff; font-size:12.5px; text-decoration:none; margin-bottom:10px;
+    background:rgba(255,255,255,.16); padding:5px 12px 5px 10px; border-radius:20px; font-weight:600;
+  }
+  .topbar::after{ content:""; position:absolute; right:-30px; top:-30px; width:140px;height:140px; border-radius:50%; background:rgba(255,255,255,0.08); }
+  .topbar h1{ font-family:'Kanit',sans-serif; font-size:20px; margin:0 0 4px; }
+  .topbar p{ margin:0; font-size:12.5px; opacity:.85; }
+  .wrap{ padding:14px 14px 0; max-width:560px; margin:0 auto; }
+
+  /* ---------- Stepper (+/-) ---------- */
+  .stepper{ display:flex; align-items:stretch; gap:3px; }
+  .stepper input{ text-align:center; flex:1; min-width:0; padding-left:2px; padding-right:2px; }
+  .step-btn{
+    flex:none; width:26px; border:1px solid var(--line); background:var(--teal-soft);
+    color:var(--teal-dark); border-radius:7px; font-size:15px; font-weight:700;
+    cursor:pointer; user-select:none; touch-action:manipulation;
+  }
+  .step-btn:active{ background:var(--teal); color:#fff; }
+
+  /* ---------- Responsive: restore multi-column once there's real room ---------- */
+  @media (min-width:480px){
+    .grid3{ grid-template-columns:repeat(3,1fr); }
+    .fsl-box{ grid-template-columns:repeat(3,1fr); }
+    .received-row{ grid-template-columns:1fr 1fr auto; align-items:end; }
+    .received-row .total-box{ text-align:center; padding-top:0; border-top:none; }
+  }
+
+  /* ---------- Responsive (tablet / desktop) ---------- */
+  @media (min-width:760px){
+    .wrap{ max-width:980px; }
+    .footer-bar .inner{ max-width:980px; }
+    #cupContainer{ display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+    #cupContainer .cup-card{ margin-bottom:0; }
+    .card{ padding:20px; }
+  }
+  .card{ background:var(--card); border-radius:var(--radius); padding:16px; margin-bottom:14px; box-shadow:0 1px 3px rgba(20,30,25,.06); border:1px solid var(--line); }
+  .card h2{ font-family:'Kanit',sans-serif; font-size:15px; margin:0 0 12px; color:var(--teal-dark); display:flex; align-items:center; gap:8px; }
+  .card h2 .num{ background:var(--teal); color:#fff; width:22px;height:22px; border-radius:7px; font-size:12px; display:flex;align-items:center;justify-content:center; flex:none; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .field{ flex:1; min-width:120px; }
+  .field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  input, select{ width:100%; border:1px solid var(--line); border-radius:10px; padding:9px 10px; font-size:14px; font-family:'Noto Sans Thai',sans-serif; background:#FCFBF8; color:var(--ink); }
+  input:focus, select:focus{ outline:none; border-color:var(--teal); background:#fff; }
+  input[readonly]{ background:var(--teal-soft); border-color:transparent; font-weight:600; color:var(--teal-dark); }
+  .autofill-box{ background:var(--teal-soft); border-radius:10px; padding:12px 14px; margin-top:8px; }
+  .af-row{ display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:13px; color:var(--teal-dark); border-bottom:1px dashed rgba(18,58,102,.15); }
+  .af-row:last-of-type{ border-bottom:none; }
+  .af-row span{ color:var(--muted); }
+  .af-row b{ font-size:15px; font-family:'Kanit',sans-serif; }
+  .af-hint{ margin-top:8px; font-size:11px; color:var(--teal-dark); font-weight:600; text-align:center; }
+  .switch-row{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin-top:8px; cursor:pointer; user-select:none; }
+  .switch-row input{ width:auto; }
+  .sub-box{ display:none; background:var(--caramel-soft); border-radius:10px; padding:10px; margin-top:8px; }
+  .sub-box.show{ display:block; }
+
+  .cup-card{ border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; background:#FCFBF8; }
+  .cup-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .cup-head .name{ font-weight:700; font-size:14px; }
+  .cup-head .tag{ font-size:10.5px; padding:2px 8px; border-radius:20px; font-weight:600; }
+  .tag-reset{ background:var(--teal-soft); color:var(--teal-dark); }
+  .tag-carry{ background:var(--caramel-soft); color:var(--caramel); }
+  .cup-head .price{ font-size:12px; color:var(--caramel); font-weight:600; }
+  .grid3{ display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:8px; }
+  .fsl-box{ background:var(--paper); border-radius:8px; padding:8px; display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:8px; }
+  .fsl-box .field label{ font-size:10.5px; }
+  .received-row{ background:var(--teal-soft); border-radius:8px; padding:8px; display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:8px; }
+  .received-row .total-box{ text-align:left; padding-top:4px; border-top:1px dashed rgba(0,0,0,.1); }
+  .received-row .total-box .val{ font-family:'Kanit',sans-serif; font-size:18px; color:var(--teal-dark); }
+  .received-row .total-box label{ font-size:10.5px; color:var(--muted); }
+  .result-line{ display:flex; justify-content:space-between; margin-top:6px; padding-top:8px; border-top:1px dashed var(--line); font-size:13px; }
+  .result-line2{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:2px; }
+  .result-line b{ color:var(--teal-dark); }
+  .money-breakdown{ margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); }
+  .mb-row{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); padding:2px 0; }
+  .mb-row b{ color:var(--ink); font-weight:600; }
+  .mb-row.total{ font-size:13.5px; padding-top:6px; margin-top:2px; border-top:1px solid var(--line); }
+  .mb-row.total span, .mb-row.total b{ color:var(--teal-dark); font-weight:700; }
+  .warn-text{ font-size:11.5px; color:var(--red); margin-top:6px; display:none; font-weight:600; }
+  .warn-text.show{ display:block; }
+  .checksum-row{ display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:10.5px; color:var(--muted); margin-top:4px; }
+  .checksum-row b{ font-size:13px; }
+  .checksum-row b.ok{ color:var(--green); }
+  .checksum-row b.bad{ color:var(--red); }
+  .mismatch-box{ display:none; background:var(--orange-soft); border-radius:8px; padding:8px; margin-top:6px; }
+  .mismatch-box.show{ display:block; }
+  .mismatch-box label{ font-size:11px; color:var(--orange); }
+  .mismatch-box .expect{ font-size:11.5px; color:var(--muted); margin-bottom:6px; }
+  .seal-summary{ background:var(--teal-soft); border-radius:8px; padding:8px 10px; margin-top:8px; }
+  .ss-row{ display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0; color:var(--teal-dark); }
+  .ss-row b{ font-family:'Kanit',sans-serif; font-size:14px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  th, td{ padding:6px 4px; border-bottom:1px solid var(--line); text-align:left; }
+  th{ color:var(--muted); font-weight:600; font-size:11.5px; }
+  td input, td select{ padding:6px; font-size:12.5px; }
+
+  .cash-list{ display:flex; flex-direction:column; gap:8px; }
+  .cash-row{
+    background:#FCFBF8; border:1px solid var(--line); border-radius:10px; padding:9px 10px;
+  }
+  .cash-row-top{ display:flex; align-items:center; gap:8px; }
+  .cash-row .cash-label{ flex:0 0 64px; font-size:13px; font-weight:600; }
+  .cash-row .stepper{ flex:1; min-width:0; }
+  .cash-row .cash-sub{ margin-top:5px; font-size:13px; color:var(--ink); font-weight:600; text-align:right; }
+  @media (min-width:760px){
+    .cash-list{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  }
+  .btn-add{ margin-top:8px; background:var(--teal); color:#fff; border:none; border-radius:8px; padding:8px 14px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .btn-add:disabled{ background:#B9B4A6; cursor:not-allowed; }
+  .del-btn{ background:none;border:none;color:var(--red);cursor:pointer;font-size:15px; }
+
+  .multi-upload{ border:1.5px dashed var(--line); border-radius:10px; padding:14px; text-align:center; font-size:12.5px; color:var(--muted); cursor:pointer; margin-bottom:10px; background:#FCFBF8; }
+  .multi-upload input{ display:none; }
+  .upload-thumb{ width:34px;height:34px;object-fit:cover;border-radius:6px; }
+
+  .image-gallery{ display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+  .gallery-thumb{ position:relative; width:64px; height:64px; }
+  .gallery-thumb img{ width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid var(--line); }
+  .thumb-del{
+    position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%;
+    background:var(--red); color:#fff; border:2px solid #fff; font-size:11px; cursor:pointer; line-height:1;
+  }
+
+  .summary-line{ display:flex; justify-content:space-between; padding:7px 0; font-size:13.5px; border-bottom:1px dashed var(--line); }
+  .summary-line:last-child{ border-bottom:none; }
+  .summary-line.total{ font-weight:700; font-size:15px; color:var(--teal-dark); padding-top:10px; }
+  .summary-line input{ width:100px; text-align:right; }
+
+  .status-pill{ display:flex; align-items:flex-start; gap:8px; padding:10px 12px; border-radius:10px; font-size:12.5px; font-weight:600; margin-top:8px; line-height:1.5; }
+  .status-ok{ background:var(--green-soft); color:var(--green); }
+  .status-orange{ background:var(--orange-soft); color:var(--orange); }
+  .status-red{ background:var(--red-soft); color:var(--red); }
+  .dot{ width:8px;height:8px;border-radius:50%; background:currentColor; margin-top:5px; flex:none; }
+  .status-pill ul{ margin:2px 0 0; padding-left:16px; font-weight:500; }
+
+  .footer-bar{ position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line); padding:10px 16px 14px; box-shadow:0 -4px 14px rgba(0,0,0,.06); z-index:40; }
+  .footer-bar .inner{ max-width:560px; margin:0 auto; }
+  .footer-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .footer-row .amt{ font-family:'Kanit',sans-serif; font-size:20px; color:var(--teal-dark); }
+  .save-btn{ background:var(--teal); color:#fff; border:none; padding:11px 20px; border-radius:12px; font-family:'Noto Sans Thai',sans-serif; font-weight:600; font-size:14px; cursor:pointer; }
+  .save-btn:disabled{ background:#B9B4A6; cursor:not-allowed; }
+  .footer-sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .footer-flag{ font-size:11px; margin-top:2px; font-weight:700; }
+  .footer-flag.ok{ color:var(--green); }
+  .footer-flag.orange{ color:var(--orange); }
+  .footer-flag.red{ color:var(--red); }
+
+  .note{ font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.5; }
+  .override-panel{ background:var(--red-soft); border-radius:10px; padding:12px; margin-top:10px; }
+  .op-title{ font-weight:700; color:var(--red); font-size:13.5px; margin-bottom:4px; }
+  .op-note{ font-size:11.5px; color:var(--muted); margin-bottom:8px; line-height:1.5; }
+  #overrideNote{ width:100%; border:1px solid var(--line); border-radius:8px; padding:8px; font-family:'Noto Sans Thai',sans-serif; font-size:13px; resize:vertical; }
+  .override-btn{ margin-top:8px; width:100%; background:var(--red); color:#fff; border:none; border-radius:10px; padding:10px; font-weight:700; font-size:13.5px; cursor:pointer; }
+  .commission-banner{ margin-top:10px; padding:14px; border-radius:12px; text-align:center; font-family:'Kanit',sans-serif; font-size:15px; font-weight:600; background:var(--teal-soft); color:var(--teal-dark); }
+  .commission-banner.gold{ background:#FFF3D6; color:#8A6116; }
+  .icon-btn{
+    background:var(--teal-soft); color:var(--teal-dark); border:none;
+    width:38px;height:38px; border-radius:10px; font-size:16px; cursor:pointer;
+  }
+
+  @media print{
+    body{ padding-bottom:0; background:#fff; }
+    .topbar{ border-radius:0; background:#fff !important; color:#000 !important; box-shadow:none; }
+    .topbar::after{ display:none; }
+    .back-pill{ display:none !important; }
+    .footer-bar{ display:none; }
+    .multi-upload{ display:none; }
+    .toast{ display:none; }
+    input, select{ border:1px solid #999 !important; background:#fff !important; color:#000 !important; }
+    .card{ box-shadow:none; border:1px solid #999; break-inside:avoid; }
+    .btn-add, .del-btn{ display:none; }
+    .step-btn{ display:none; }
+    .stepper{ display:block; }
+    .status-pill, .mismatch-box, .warn-text{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+  .toast{ position:fixed; top:16px; left:50%; transform:translateX(-50%); background:var(--teal-dark); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:90%; text-align:center; }
+  .toast.show{ opacity:1; }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,30,25,.55);
+    display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background:#fff; border-radius:16px; padding:24px 20px; max-width:340px; width:100%;
+    text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.2);
+  }
+  .modal-box .pin{ font-size:28px; }
+  .modal-box .branch-name{ font-family:'Kanit',sans-serif; font-size:20px; color:var(--teal-dark); margin:8px 0 4px; }
+  .modal-box .q{ font-size:13px; color:var(--muted); margin-bottom:18px; }
+  .modal-btn-row{ display:flex; gap:10px; }
+  .modal-btn{ flex:1; padding:11px; border-radius:10px; border:none; font-weight:600; font-size:14px; cursor:pointer; }
+  .modal-btn.no{ background:var(--red-soft); color:var(--red); }
+  .modal-btn.yes{ background:var(--teal); color:#fff; }
+
+  .wheel-wrap{ position:relative; display:flex; justify-content:center; align-items:center; height:180px; gap:8px; }
+  .wheel-highlight{
+    position:absolute; left:8%; right:8%; top:50%; transform:translateY(-50%);
+    height:44px; background:var(--teal-soft); border-radius:10px; z-index:0; pointer-events:none;
+  }
+  .wheel-col{
+    position:relative; z-index:1; height:180px; width:70px; overflow-y:scroll;
+    scroll-snap-type:y mandatory; -webkit-overflow-scrolling:touch; text-align:center;
+    scrollbar-width:none;
+  }
+  .wheel-col::-webkit-scrollbar{ display:none; }
+  .wheel-item{
+    height:44px; line-height:44px; scroll-snap-align:center; font-size:20px;
+    font-family:'Kanit',sans-serif; color:var(--muted);
+  }
+  .wheel-sep{ font-size:22px; font-weight:700; color:var(--teal-dark); z-index:1; }
+  .time-display{
+    text-align:center; font-family:'Kanit',sans-serif; font-size:28px; color:var(--teal-dark);
+    margin-bottom:6px;
+  }
+  .branch-pick-list{ max-height:300px; overflow-y:auto; margin-top:8px; border-top:1px solid var(--line); }
+  .branch-pick-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .branch-pick-row:active{ background:var(--teal-soft); }
+  .branch-pick-row b{ font-size:13.5px; }
+  .branch-pick-row span{ color:var(--muted); font-size:11.5px; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="timePickerModal">
+  <div class="modal-box" style="max-width:280px;">
+    <div class="q" style="margin-bottom:6px; font-weight:700;" id="timePickerTitle">เลือกเวลา</div>
+    <div class="wheel-wrap">
+      <div class="wheel-highlight"></div>
+      <div class="wheel-col" id="wheelHour"></div>
+      <div class="wheel-sep">:</div>
+      <div class="wheel-col" id="wheelMinute"></div>
+    </div>
+    <div class="modal-btn-row" style="margin-top:10px;">
+      <button class="modal-btn no" onclick="closeTimePicker()">ยกเลิก</button>
+      <button class="modal-btn yes" onclick="confirmTimePicker()">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="branchPickerModal">
+  <div class="modal-box" style="text-align:left; max-width:380px;">
+    <div class="q" style="margin-bottom:10px; font-weight:700;">🔍 เลือกสาขา (ค้นหาจากชื่อได้)</div>
+    <input id="branchPickerSearch" placeholder="พิมพ์ชื่อสาขา...">
+    <div id="branchPickerList" class="branch-pick-list"></div>
+    <button class="modal-btn no" style="width:100%; margin-top:10px;" onclick="closeBranchPicker()">ปิด</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="branchConfirmModal">
+  <div class="modal-box">
+    <div class="pin">📍</div>
+    <div class="q">กำลังบันทึกข้อมูลของสาขา</div>
+    <div class="branch-name" id="branchConfirmName">-</div>
+    <div class="q">ใช่สาขานี้หรือไม่?</div>
+    <div class="modal-btn-row">
+      <button class="modal-btn no" onclick="rejectBranchConfirm()">❌ ไม่ใช่ กรอกใหม่</button>
+      <button class="modal-btn yes" onclick="acceptBranchConfirm()">✅ ใช่ ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <a href="dashboard.html" id="backToMenu" class="back-pill" style="display:none;">‹ กลับเมนูหลัก</a>
+  <h1>ใบรายการขายประจำวัน</h1>
+  <p>กรอกยอดขายประจำวัน — ระบบคำนวณและตรวจสอบให้อัตโนมัติ</p>
+  <p style="opacity:.6; font-size:10px; margin-top:4px;">เวอร์ชันฟอร์ม: v3-ocr-live-2026-07-17</p>
+</div>
+
+<div class="wrap">
+
+  <!-- 1. พนักงาน -->
+  <div class="card">
+    <h2><span class="num">1</span>ข้อมูลพนักงาน &amp; สาขา</h2>
+    <div class="row" id="empCodeRow">
+      <div class="field" id="empCodeField"><label>รหัสพนักงาน</label><input id="empCode" placeholder="พิมพ์รหัสพนักงาน..." inputmode="numeric"></div>
+      <div class="field"><label>วันที่</label><input id="saleDate" type="date"></div>
+    </div>
+    <div id="autofillBox" class="autofill-box">
+      <div class="af-row"><span>ชื่อ</span><b id="afFirstName">-</b></div>
+      <div class="af-row"><span>นามสกุล</span><b id="afLastName">-</b></div>
+      <div class="af-row"><span>ชื่อเล่น</span><b id="afNickname">-</b></div>
+      <div class="af-row" id="afBranchRow"><span>สาขา</span><b id="afBranch">-</b></div>
+      <div class="af-row" id="afBranchCodeRow"><span>รหัสสาขา</span><b id="afBranchCode">-</b></div>
+      <div class="af-hint">กรุณาตรวจสอบชื่อ-สาขาให้ตรงกับตัวเองก่อนกรอกต่อ</div>
+    </div>
+
+    <label class="switch-row">
+      <input type="checkbox" id="substituteToggle">
+      ไปขายแทนพนักงาน/สาขาอื่น (กรอกรหัสสาขาเองแทนระบบ)
+    </label>
+    <div class="sub-box" id="subBox">
+      <div class="field">
+        <label>รหัสสาขาที่ไปขายแทน</label>
+        <div style="display:flex; gap:6px;">
+          <input id="subBranchCode" placeholder="พิมพ์รหัสสาขา..." style="flex:1;">
+          <button type="button" class="icon-btn" onclick="openBranchPicker()" title="เลือกสาขาจากรายชื่อ">🔍</button>
+        </div>
+      </div>
+      <div class="af-row" id="subBranchNameRow" style="display:none; background:var(--teal-soft); border-radius:8px; padding:8px 10px; margin-top:8px; border-bottom:none;">
+        <span>สาขาที่ไปขายแทน</span><b id="subBranchNameDisplay">-</b>
+      </div>
+      <div class="note">พิมพ์รหัสสาขา ระบบจะขึ้นชื่อสาขาให้อัตโนมัติ ถ้าจำรหัสไม่ได้ กดปุ่ม 🔍 เพื่อค้นหาจากชื่อสาขาแทนได้</div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <div class="field"><label>เวลาเปิดร้าน</label><input id="timeOpen" type="text" readonly placeholder="แตะเลือกเวลา" onclick="openTimePicker('timeOpen','เวลาเปิดร้าน')"></div>
+      <div class="field"><label>เวลาปิดร้าน</label><input id="timeClose" type="text" readonly placeholder="แตะเลือกเวลา" onclick="openTimePicker('timeClose','เวลาปิดร้าน')"></div>
+      <div class="field"><label>น้ำแข็ง (กระสอบ)</label><input id="iceBags" type="number" min="0" value="0"></div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>เครื่องซีล — เลขเปิด (เช้า) <span style="color:var(--caramel)">ยกมาจากเมื่อวาน</span></label>
+        <input id="sealOpen" type="number" min="0" value="0">
+      </div>
+      <div class="field"><label>เครื่องซีล — เลขปิด (เย็น)</label><input id="sealClose" type="number" min="0" value="0"></div>
+    </div>
+    <div class="mismatch-box" id="sealOpenMismatchBox">
+      <div class="expect">ระบบคาดว่าเลขเปิดควรเป็น <b id="sealOpenExpected">0</b> (เลขปิดของเมื่อวาน) — กรุณาระบุสาเหตุที่ไม่ตรง</div>
+      <select id="sealOpenReason">
+        <option value="">-- เลือกสาเหตุ --</option>
+        <option>เปลี่ยนเครื่องซีล</option>
+        <option>เครื่องซีลเสีย</option>
+        <option>จดตัวเลขผิด</option>
+        <option value="other">อื่นๆ (ระบุ)</option>
+      </select>
+      <input id="sealOpenReasonOther" placeholder="ระบุสาเหตุ..." style="margin-top:6px; display:none;">
+    </div>
+
+    <div class="seal-summary">
+      <div class="ss-row"><span>ผลต่างเครื่องซีล (ปิด−เปิด)</span><b id="sealDiffDisplay">0</b></div>
+      <div class="ss-row"><span>รวมแก้วที่จ่ายออก (โอน+ขาย+ฟรี+เสีย+ไลน์แมน)</span><b id="sealDispatchDisplay">0</b></div>
+    </div>
+    <div class="mismatch-box" id="sealDispatchMismatchBox">
+      <div class="expect">2 ค่าด้านบนไม่ตรงกัน — กรุณาระบุสาเหตุ (ติดสถานะส้ม ยังส่งข้อมูลได้)</div>
+      <select id="sealDispatchReason">
+        <option value="">-- เลือกสาเหตุ --</option>
+        <option>ซีลซ้ำ</option>
+        <option>เทสเครื่อง</option>
+        <option>เปลี่ยนเครื่องซีล</option>
+        <option>กดผิดลบเลขซีล</option>
+        <option>พนักงานก่อนหน้าลงผิด</option>
+        <option value="other">อื่นๆ (ระบุ)</option>
+      </select>
+      <input id="sealDispatchReasonOther" placeholder="ระบุสาเหตุ..." style="margin-top:6px; display:none;">
+    </div>
+  </div>
+
+  <!-- 2. แก้ว -->
+  <div class="card">
+    <h2><span class="num">2</span>รายการแก้ว</h2>
+    <div id="cupContainer"></div>
+  </div>
+
+  <!-- 3. เพิ่มไข่มุก/วุ้น -->
+  <div class="card">
+    <h2><span class="num">3</span>เงินเพิ่มไข่มุก/วุ้น</h2>
+    <div class="row" style="margin-bottom:0;">
+      <div class="field"><label>จำนวนช้อนที่เพิ่ม</label><input id="addonQty" type="number" min="0" value="0"></div>
+      <div class="field"><label>ราคา/ช้อน (บาท)</label><input id="addonPrice" type="number" min="0" value="5"></div>
+      <div class="field"><label>รวมเป็นเงิน</label><input id="addonTotal" readonly value="0"></div>
+    </div>
+  </div>
+
+  <!-- 4. เงินโอนเข้าบริษัท -->
+  <div class="card">
+    <h2><span class="num">4</span>เงินโอนเข้าบริษัท</h2>
+    <div class="field" style="margin-bottom:10px;">
+      <label>ยอดโอนรวมทั้งหมด (พนักงานกรอกเอง)</label>
+      <input id="transferManualTotal" type="number" min="0" value="0">
+    </div>
+    <label class="multi-upload">
+      📎 แนบภาพสลิปได้ทีเดียวหลายภาพ (ส่งประมวลผลผ่าน AI)
+      <input type="file" accept="image/*" multiple id="slipMultiInput" onchange="handleMultiUpload(this,'transfer')">
+    </label>
+    <div id="transferImageGallery" class="image-gallery"></div>
+    <button class="btn-add" id="btnOcrSlip" onclick="readSlipImages()">🔍 ให้ระบบอ่านยอดจากภาพ</button>
+
+    <div class="result-line"><span>ยอดที่พนักงานกรอก</span><b id="transferManualDisplay">0.00 บาท</b></div>
+    <div class="result-line2"><span>ยอดที่ระบบอ่านได้จากภาพ (OCR)</span><b id="transferOcrTotal">ยังไม่ได้อ่าน</b></div>
+    <div class="result-line2"><span>ยอดโอนตามแก้ว</span><b id="transferFromCups">0.00 บาท</b></div>
+    <div id="transferMismatchMsg" class="warn-text" style="color:var(--orange);"></div>
+  </div>
+
+  <!-- 5. ไลน์แมน -->
+  <div class="card">
+    <h2><span class="num">5</span>ออเดอร์ไลน์แมน (LINE MAN)</h2>
+    <label class="multi-upload">
+      📎 แนบภาพออเดอร์ได้ทีเดียวหลายภาพ
+      <input type="file" accept="image/*" multiple id="lmMultiInput" onchange="handleMultiUpload(this,'lineman')">
+    </label>
+    <div id="linemanImageGallery" class="image-gallery"></div>
+    <button class="btn-add" id="btnOcrLm" onclick="readLinemanImages()">🔍 ให้ระบบอ่านออเดอร์จากภาพ</button>
+
+    <table id="linemanResultTable" style="margin-top:10px;">
+      <thead><tr><th>เลขออเดอร์</th><th>จัมโบ้</th><th>ใหญ่</th><th>เล็ก</th><th>น้ำเต้าหู้</th></tr></thead>
+      <tbody id="linemanResultBody"></tbody>
+    </table>
+    <div class="result-line"><span>สรุปรวมจากภาพ</span><b id="linemanOcrSummary">ยังไม่ได้อ่าน</b></div>
+  </div>
+
+  <!-- 6. นับเงินสด -->
+  <div class="card">
+    <h2><span class="num">6</span>นับธนบัตร / เหรียญ (ยอดเงินสดจริง)</h2>
+    <div id="cashTable" class="cash-list"></div>
+    <div class="result-line"><span>รวมเงินสดที่นับได้จริง</span><b id="cashTotal">0.00 บาท</b></div>
+  </div>
+
+  <!-- 7. สรุปเงิน + Status -->
+  <div class="card">
+    <h2><span class="num">7</span>สรุปยอด &amp; สถานะตรวจสอบ</h2>
+    <div class="summary-line"><span>ยอดขายรวม (เงินสด+โอน+ไข่มุก/วุ้น)</span><b id="sumSales">0.00</b></div>
+    <div class="summary-line"><span>หัก ยอดตัดยอด</span><input id="cutoff" type="number" min="0" value="0" data-step="100"></div>
+    <div class="summary-line"><span>หัก ค่าใช้จ่าย</span><input id="expense" type="number" min="0" value="0"></div>
+    <div class="summary-line"><span>หัก ยอดโอนเข้าบริษัท (อัตโนมัติจากแก้วโอน)</span><b id="sumTransfer">0.00</b></div>
+    <div class="summary-line total"><span>คงเหลือที่ต้องนำส่ง</span><b id="sumRemain">0.00 บาท</b></div>
+
+    <div id="overridePanel" class="override-panel" style="display:none;">
+      <div class="op-title">⚠ พบข้อมูลไม่สมดุล (ติดสถานะแดง) ยังบันทึกปกติไม่ได้</div>
+      <textarea id="overrideNote" placeholder="ระบุหมายเหตุ/สาเหตุของปัญหาที่เกิดขึ้น..." rows="3"></textarea>
+      <button class="override-btn" onclick="submitOverride()">📤 ขออนุมัติส่งข้อมูล</button>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-bar">
+  <div class="inner">
+    <div class="footer-row">
+      <div>
+        <div class="footer-sub">คงเหลือที่ต้องนำส่ง</div>
+        <div class="amt" id="footerAmt">0.00 บาท</div>
+        <div class="footer-flag ok" id="footerFlag">พร้อมบันทึก</div>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="save-btn" id="saveBtn" onclick="saveForm()">บันทึกรายการ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// URL สำหรับเรียก Google Apps Script Backend
+const API_URL = "https://script.google.com/macros/s/AKfycbxE0rOPdMdSQhxmDSSF16t6OI3RLPOaPvDF_U1etW77GKHl2dlJGhQ9HmVYFIlTF8SA/exec";
+
+const cupTypes = [
+  {key:'jumbo', label:'แก้วจัมโบ้', price:35, type:'reset', sealed:true},
+  {key:'large', label:'แก้วใหญ่',   price:30, type:'reset', sealed:true},
+  {key:'small', label:'แก้วเล็ก',   price:25, type:'reset', sealed:true},
+  {key:'soy',   label:'น้ำเต้าหู้', price:15, type:'carryover', sealed:false},
+];
+
+let uploadedFiles = { transfer: [], lineman: [] };
+
+function el(tag, attrs={}, html=''){
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
+  e.innerHTML = html;
+  return e;
+}
+
+// ---------- 1. ดึงข้อมูลพนักงานอัตโนมัติ (Live Fetch) ----------
+const empInput = document.getElementById('empCode');
+empInput.addEventListener('input', debounce(() => {
+  const code = empInput.value.trim();
+  if(!code) {
+    resetEmpFields();
+    return;
+  }
+  showToast("กำลังค้นหาข้อมูลพนักงาน...");
+  
+  // เรียก API ไปที่ Sheets
+  fetch(`${API_URL}?action=getEmployee&empCode=${code}`)
+    .then(res => res.json())
+    .then(data => {
+      if(data && data.success) {
+        document.getElementById('afFirstName').textContent = data.firstName || '-';
+        document.getElementById('afLastName').textContent = data.lastName || '-';
+        document.getElementById('afNickname').textContent = data.nickname || '-';
+        document.getElementById('afBranch').textContent = data.branchName || '-';
+        document.getElementById('afBranchCode').textContent = data.branchCode || '-';
+        
+        // ยอดยกมาของเครื่องซีลและน้ำเต้าหู้
+        if(data.sealCloseYesterday) {
+          document.getElementById('sealOpen').value = data.sealCloseYesterday;
+          document.getElementById('sealOpenExpected').textContent = data.sealCloseYesterday;
+        }
+        if(data.soyCloseYesterday) {
+          document.getElementById('soyOpen').value = data.soyCloseYesterday;
+        }
+        showToast("ดึงข้อมูลสำเร็จแล้วค่ะ");
+        recalcAll();
+      } else {
+        resetEmpFields();
+        showToast("❌ ไม่พบรหัสพนักงานนี้ในระบบ");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showToast("❌ เชื่อมต่อระบบพนักงานไม่สำเร็จ");
+    });
+}, 500));
+
+function resetEmpFields() {
+  document.getElementById('afFirstName').textContent = '-';
+  document.getElementById('afLastName').textContent = '-';
+  document.getElementById('afNickname').textContent = '-';
+  document.getElementById('afBranch').textContent = '-';
+  document.getElementById('afBranchCode').textContent = '-';
+}
+
+function debounce(func, delay) {
+  let timer;
+  return function(...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() => func.apply(this, args), delay);
+  };
+}
+
+// ---------- 2. ระบบดึงยอด/ประมวลผลสลิปผ่าน AI OCR ----------
+function readSlipImages() {
+  if (uploadedFiles.transfer.length === 0) {
+    showToast("⚠ กรุณาแนบภาพสลิปโอนเงินก่อนค่ะ");
+    return;
+  }
+  
+  const btn = document.getElementById('btnOcrSlip');
+  btn.disabled = true;
+  btn.textContent = "กำลังประมวลผล AI...";
+  showToast("🚀 กำลังส่งภาพสลิปให้ระบบ AI ตรวจสอบ...");
+
+  // แปลงไฟล์ภาพแรกเป็น Base64 ส่งไปประมวลผล
+  const file = uploadedFiles.transfer[0];
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const base64Data = e.target.result.split(',')[1];
+    
+    fetch(API_URL, {
+      method: "POST",
+      mode: "cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "processSlipOCR",
+        image: base64Data,
+        filename: file.name
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      btn.disabled = false;
+      btn.textContent = "🔍 ให้ระบบอ่านยอดจากภาพ";
+      
+      if(data && data.success) {
+        document.getElementById('transferOcrTotal').textContent = parseFloat(data.amount).toFixed(2) + " บาท";
+        document.getElementById('transferManualTotal').value = data.amount;
+        showToast(`✅ AI อ่านยอดสำเร็จ: ${data.amount} บาท`);
+        recalcAll();
+      } else {
+        document.getElementById('transferOcrTotal').textContent = "อ่านไม่สำเร็จ (กรอกเองได้เลยค่ะ)";
+        showToast("⚠ AI อ่านสลิปไม่สำเร็จ พนักงานกรอกยอดเองได้เลยค่ะ");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      btn.disabled = false;
+      btn.textContent = "🔍 ให้ระบบอ่านยอดจากภาพ";
+      document.getElementById('transferOcrTotal').textContent = "การเชื่อมต่อผิดพลาด";
+      showToast("❌ ไม่สามารถเชื่อมต่อระบบ OCR ได้");
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+// ---------- BUILD ITEMS ----------
+const cupContainer = document.getElementById('cupContainer');
+cupTypes.forEach(c=>{
+  const card = el('div',{class:'cup-card','data-key':c.key});
+  card.innerHTML = `
+    <div class="cup-head">
+      <div><span class="name">${c.label}</span></div>
+      <div class="price">ราคา ${c.price} บ.</div>
+    </div>
+    <div class="fsl-box">
+      <div class="field"><label>ยกมาเช้า</label><input id="${c.key}Open" type="number" min="0" value="${c.type === 'reset' ? 50 : 0}"></div>
+      <div class="field"><label>รับเพิ่ม</label><input id="${c.key}Receive" type="number" min="0" value="0"></div>
+      <div class="field"><label>เหลือเย็น</label><input id="${c.key}Close" type="number" min="0" value="0"></div>
+    </div>
+    <div class="received-row">
+      <div class="field"><label>โอน (แก้ว)</label><input id="${c.key}Transfer" type="number" min="0" value="0"></div>
+      <div class="field"><label>ฟรี/เสีย</label><input id="${c.key}Waste" type="number" min="0" value="0"></div>
+      <div class="total-box"><label>ขายจริง</label><div class="val" id="${c.key}SalesQty">0</div></div>
+    </div>
+    <div class="money-breakdown" style="display:none;">
+      <span id="${c.key}CashIncome">0</span><span id="${c.key}TransferIncome">0</span>
+    </div>
+  `;
+  cupContainer.appendChild(card);
+});
+
+const cashDenoms = [1000, 500, 100, 50, 20, 10, 5, 2, 1, 0.5];
+const cashTable = document.getElementById('cashTable');
+cashDenoms.forEach(v => {
+  const row = el('div', { class: 'cash-row' });
+  row.innerHTML = `
+    <div class="cash-row-top">
+      <div class="cash-label">${v >= 20 ? 'ธนบัตร' : 'เหรียญ'} ${v}</div>
+      <input type="number" min="0" value="0" class="cash-input" data-val="${v}" id="cash_${v}">
+    </div>
+    <div class="cash-sub" id="sub_cash_${v}">0.00 บาท</div>
+  `;
+  cashTable.appendChild(row);
+});
+
+// ---------- CALCULATION ----------
+function recalcAll() {
+  let totalSales = 0;
+  let totalTransferFromCups = 0;
+  let totalDispatchCups = 0;
+
+  cupTypes.forEach(c => {
+    const open = parseFloat(document.getElementById(`${c.key}Open`).value) || 0;
+    const recv = parseFloat(document.getElementById(`${c.key}Receive`).value) || 0;
+    const close = parseFloat(document.getElementById(`${c.key}Close`).value) || 0;
+    const tfCups = parseFloat(document.getElementById(`${c.key}Transfer`).value) || 0;
+    const waste = parseFloat(document.getElementById(`${c.key}Waste`).value) || 0;
+
+    let salesQty = (open + recv) - close - tfCups - waste;
+    if(salesQty < 0) salesQty = 0;
+    document.getElementById(`${c.key}SalesQty`).textContent = salesQty;
+
+    let tfIncome = tfCups * c.price;
+    let cashIncome = salesQty * c.price;
+    
+    totalSales += (tfIncome + cashIncome);
+    totalTransferFromCups += tfIncome;
+    if(c.sealed) totalDispatchCups += (salesQty + tfCups + waste);
+  });
+
+  const addonQty = parseFloat(document.getElementById('addonQty').value) || 0;
+  const addonPrice = parseFloat(document.getElementById('addonPrice').value) || 0;
+  const addonTotal = addonQty * addonPrice;
+  document.getElementById('addonTotal').value = addonTotal;
+  totalSales += addonTotal;
+
+  document.getElementById('sumSales').textContent = totalSales.toFixed(2);
+  document.getElementById('transferFromCups').textContent = totalTransferFromCups.toFixed(2);
+  document.getElementById('sumTransfer').textContent = totalTransferFromCups.toFixed(2);
+
+  const sealOpen = parseFloat(document.getElementById('sealOpen').value) || 0;
+  const sealClose = parseFloat(document.getElementById('sealClose').value) || 0;
+  let sealDiff = sealClose - sealOpen;
+  document.getElementById('sealDiffDisplay').textContent = sealDiff >= 0 ? sealDiff : 0;
+  document.getElementById('sealDispatchDisplay').textContent = totalDispatchCups;
+
+  let totalCashCounted = 0;
+  document.querySelectorAll('.cash-input').forEach(input => {
+    const val = parseFloat(input.getAttribute('data-val'));
+    const qty = parseFloat(input.value) || 0;
+    const sub = qty * val;
+    document.getElementById(`sub_cash_${val}`).textContent = sub.toFixed(2) + ' บาท';
+    totalCashCounted += sub;
+  });
+  document.getElementById('cashTotal').textContent = totalCashCounted.toFixed(2) + ' บาท';
+
+  const cutoff = parseFloat(document.getElementById('cutoff').value) || 0;
+  const expense = parseFloat(document.getElementById('expense').value) || 0;
+  
+  let remainDelivery = totalSales - totalTransferFromCups - cutoff - expense;
+  document.getElementById('sumRemain').textContent = remainDelivery.toFixed(2) + ' บาท';
+  document.getElementById('footerAmt').textContent = remainDelivery.toFixed(2) + ' บาท';
+
+  const tManual = parseFloat(document.getElementById('transferManualTotal').value) || 0;
+  document.getElementById('transferManualDisplay').textContent = tManual.toFixed(2) + " บาท";
+
+  validateForm(totalCashCounted, remainDelivery, sealDiff, totalDispatchCups);
+}
+
+function validateForm(cashCounted, remainDelivery, sealDiff, totalDispatch) {
+  const saveBtn = document.getElementById('saveBtn');
+  const footerFlag = document.getElementById('footerFlag');
+  const overridePanel = document.getElementById('overridePanel');
+  
+  let isCashMatch = Math.abs(cashCounted - remainDelivery) < 1;
+  let isSealMatch = sealDiff === totalDispatch;
+
+  if (isCashMatch) {
+    footerFlag.textContent = isSealMatch ? "พร้อมบันทึก (ข้อมูลสมดุล)" : "เครื่องซีลไม่ตรง (ส่งได้ปกติ)";
+    footerFlag.className = isSealMatch ? "footer-flag ok" : "footer-flag orange";
+    overridePanel.style.display = "none";
+    saveBtn.disabled = false;
+  } else {
+    footerFlag.textContent = "เงินสดไม่ตรงกับยอดคงเหลือนำส่ง (ติดสถานะแดง)";
+    footerFlag.className = "footer-flag red";
+    overridePanel.style.display = "block";
+    saveBtn.disabled = true;
+  }
+}
+
+function handleMultiUpload(input, type) {
+  const gallery = document.getElementById(`${type}ImageGallery`);
+  gallery.innerHTML = '';
+  uploadedFiles[type] = Array.from(input.files);
+  uploadedFiles[type].forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const div = el('div', { class: 'gallery-thumb' });
+      div.innerHTML = `<img src="${e.target.result}"><button class="thumb-del" onclick="removeThumb('${type}', ${idx})">×</button>`;
+      gallery.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function removeThumb(type, idx) {
+  uploadedFiles[type].splice(idx, 1);
+  recalcAll();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+function attachStepper(input){
+  const wrap = document.createElement('div');
+  wrap.className = 'stepper';
+  input.parentNode.insertBefore(wrap, input);
+  const minus = el('button',{type:'button',class:'step-btn'},'−');
+  const plus = el('button',{type:'button',class:'step-btn'},'+');
+  wrap.appendChild(minus); wrap.appendChild(input); wrap.appendChild(plus);
+  
+  minus.onclick = () => { input.value = Math.max(0, (parseFloat(input.value)||0)-1); recalcAll(); };
+  plus.onclick = () => { input.value = (parseFloat(input.value)||0)+1; recalcAll(); };
+}
+
+document.querySelectorAll('input[type="number"]').forEach(attachStepper);
+document.addEventListener('input', recalcAll);
+
+function openTimePicker(id,title){}
+function readLinemanImages(){}
+function saveForm(){ showToast("กำลังส่งข้อมูล..."); }
+</script>
+</body>
+</html>
