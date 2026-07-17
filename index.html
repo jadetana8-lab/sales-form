@@ -3,71 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ระบบแจ้งยอดขายประจำวัน - thaiyuh</title>
-  <!-- 🌟 มะขวิดแก้ลิงก์ Bootstrap ตัวดึงความสวยงามให้ถูกต้องแล้วค่ะ -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+  <title>Daily sales report</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
   <style>
-    body {
-      background-color: #f8f9fa;
-      font-family: Arial, sans-serif;
-      padding-top: 2rem;
-    }
-    .sales-container {
-      max-width: 600px;
-      margin: 0 auto;
-      background: #ffffff;
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    }
-    .form-header {
-      border-bottom: 2px solid #28a745;
-      padding-bottom: 1rem;
-      margin-bottom: 1.5rem;
-      text-align: center;
-      color: #1e7e34;
-    }
-    .employee-card {
-      background-color: #f1f3f5;
-      border: none;
-      border-left: 5px solid #007bff;
-      border-radius: 6px;
-    }
-    .status-text {
-      font-weight: bold;
-      transition: color 0.3s ease;
-    }
+    body { background-color: #f8f9fa; padding-top: 2rem; }
+    .container { max-width: 600px; background: #ffffff; padding: 2rem; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
   </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="sales-container">
-    
-    <div class="form-header">
-      <h2>📝 แจ้งยอดขายประจำวัน</h2>
-      <p class="text-muted small">บริษัท ไทยยู่ จำกัด (thaiyuh)</p>
+  <h3>📝 Daily sales report.</h3>
+  <p class="text-muted">Thai Yuh Company Limited (thaiyuh)</p>
+  <hr>
+
+  <label><strong>Employee ID</strong></label>
+  <input type="text" id="empCode" class="form-control" placeholder="Enter ID" oninput="searchEmployee()">
+  <small id="statusMessage" class="text-danger">System error: undefined</small>
+
+  <div class="card mt-3">
+    <div class="card-body">
+      <h5>📋 Employee Information</h5>
+      <p><strong>Name-Surname:</strong> <span id="empName">-</span></p>
+      <p><strong>nickname:</strong> <span id="empNickname">-</span></p>
+      <p><strong>Branch code:</strong> <span id="branchCode">-</span></p>
+      <p><strong>Branch Name:</strong> <span id="branchName">-</span></p>
     </div>
-
-    <!-- ส่วนที่ 1: ตรวจสอบข้อมูลพนักงาน -->
-    <div class="employee-section">
-      <div class="form-group">
-        <label for="empCode" class="font-weight-bold">รหัสพนักงาน</label>
-        <input type="text" id="empCode" class="form-control form-control-lg" placeholder="กรอกรหัสพนักงาน เช่น 002, 304" oninput="searchEmployee()">
-        <small id="statusMessage" class="form-text status-text text-muted mt-2">กรุณากรอกรหัสพนักงานเพื่อดึงข้อมูล</small>
-      </div>
-
-      <div class="card employee-card mt-3">
-        <div class="card-body">
-          <h5 class="card-title text-secondary border-bottom pb-2 mb-3">📋 ข้อมูลพนักงาน</h5>
-          <p class="card-text"><strong>ชื่อ-นามสกุล:</strong> <span id="empName" class="text-dark">-</span></p>
-          <p class="card-text"><strong>ชื่อเล่น:</strong> <span id="empNickname" class="text-dark">-</span></p>
-          <p class="card-text"><strong>รหัสสาขา:</strong> <span id="branchCode" class="text-dark">-</span></p>
-          <p class="card-text"><strong>ชื่อสาขา:</strong> <span id="branchName" class="text-dark">-</span></p>
-        </div>
-      </div>
-    </div>
-
   </div>
 </div>
 
@@ -75,64 +36,31 @@
 const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwA7wu8vbMCa1lWxXhiosOOB6nO2TIQS4dhgPjYz8ZdoEx2ZqLNV9LB6snN73igLgYR/exec";
 const API_KEY = "AQ.Ab8RN6IkB0O6am2b2A6hwuswMQHRKkzxcwUpgHIKLkA1XAM9rw";
 
-let searchTimeout;
-
 function searchEmployee() {
-  const empCodeInput = document.getElementById('empCode').value.trim();
+  const empCode = document.getElementById('empCode').value.trim();
   const statusMessage = document.getElementById('statusMessage');
-  
-  clearEmployeeFields();
+  if(!empCode) return;
 
-  if (!empCodeInput) {
-    statusMessage.innerText = "กรุณากรอกรหัสพนักงานเพื่อดึงข้อมูล";
-    statusMessage.style.color = "#6c757d";
-    return;
-  }
+  statusMessage.innerText = "กำลังค้นหา...";
+  statusMessage.style.color = "blue";
 
-  clearTimeout(searchTimeout);
-  searchTimeout = setTimeout(() => {
-    statusMessage.innerText = "⏳ กำลังค้นหาข้อมูลในระบบ...";
-    statusMessage.style.color = "#007bff";
-
-    const finalUrl = `${WEB_APP_URL}?action=getEmployee&empCode=${encodeURIComponent(empCodeInput)}&apiKey=${API_KEY}`;
-
-    fetch(finalUrl)
-      .then(response => {
-        if (!response.ok) throw new Error('ไม่สามารถเชื่อมต่อกับระบบหลังบ้านได้');
-        return response.json();
-      })
-      .then(result => {
-        if (result.status === 'success') {
-          document.getElementById('empName').innerText = result.data.name;
-          document.getElementById('empNickname').innerText = result.data.nickname;
-          document.getElementById('branchCode').innerText = result.data.branchCode;
-          document.getElementById('branchName').innerText = result.data.branchName;
-          
-          statusMessage.innerText = "✅ ดึงข้อมูลพนักงานเรียบร้อยแล้วค่ะ";
-          statusMessage.style.color = "#28a745";
-        } else if (result.status === 'not_found') {
-          statusMessage.innerText = "❌ ไม่พบรหัสพนักงานนี้ในฐานข้อมูล";
-          statusMessage.style.color = "#dc3545";
-        } else {
-          statusMessage.innerText = `⚠️ ข้อผิดพลาดจากระบบ: ${result.message}`;
-          statusMessage.style.color = "#dc3545";
-        }
-      })
-      .catch(error => {
-        console.error('Fetch Error:', error);
-        statusMessage.innerText = "🛑 การเชื่อมต่อขัดข้อง กรุณาตรวจสอบระบบอีกครั้ง";
-        statusMessage.style.color = "#dc3545";
-      });
-  }, 500);
-}
-
-function clearEmployeeFields() {
-  document.getElementById('empName').innerText = "-";
-  document.getElementById('empNickname').innerText = "-";
-  document.getElementById('branchCode').innerText = "-";
-  document.getElementById('branchName').innerText = "-";
+  fetch(`${WEB_APP_URL}?action=getEmployee&empCode=${encodeURIComponent(empCode)}&apiKey=${API_KEY}`)
+    .then(res => res.json())
+    .then(result => {
+      if(result.status === 'success') {
+        document.getElementById('empName').innerText = result.data.name;
+        document.getElementById('empNickname').innerText = result.data.nickname;
+        document.getElementById('branchCode').innerText = result.data.branchCode;
+        document.getElementById('branchName').innerText = result.data.branchName;
+        statusMessage.innerText = "พบข้อมูล";
+        statusMessage.style.color = "green";
+      } else {
+        statusMessage.innerText = "ไม่พบข้อมูล";
+        statusMessage.style.color = "red";
+      }
+    })
+    .catch(err => statusMessage.innerText = "Error: " + err);
 }
 </script>
-
 </body>
 </html>
