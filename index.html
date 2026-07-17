@@ -4,53 +4,1658 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
 <title>ใบรายการขายประจำวัน</title>
-<!-- ... โค้ด CSS และ Header เดิมของพี่เจตทั้งหมด ... -->
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D5FA8">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="ใบขาย">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  /* โค้ด CSS เดิมของพี่เจตทั้งหมดที่ส่งมา */
-  /* (แปะ CSS เดิมของพี่เจตใส่ตรงนี้ได้เลยค่ะ) */
+  :root{
+    --ink:#1B2B29;
+    --paper:#EEF5FC;
+    --card:#FFFFFF;
+    --teal:#1D5FA8;
+    --teal-dark:#123A66;
+    --teal-soft:#DCEAFB;
+    --caramel:#C9863F;
+    --caramel-soft:#F6E8D5;
+    --line:#DDD6C7;
+    --red:#B3382C;
+    --red-soft:#FBE7E3;
+    --orange:#C97A1B;
+    --orange-soft:#FBEBD4;
+    --green:#2F8F5B;
+    --green-soft:#E5F3EA;
+    --muted:#7A756A;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Noto Sans Thai',sans-serif; background:var(--paper); color:var(--ink); padding-bottom:120px; }
+  .topbar{ background:var(--teal); color:#fff; padding:18px 20px 22px; border-radius:0 0 22px 22px; position:relative; overflow:hidden; }
+  .back-pill{
+    display:inline-block; color:#fff; font-size:12.5px; text-decoration:none; margin-bottom:10px;
+    background:rgba(255,255,255,.16); padding:5px 12px 5px 10px; border-radius:20px; font-weight:600;
+  }
+  .topbar::after{ content:""; position:absolute; right:-30px; top:-30px; width:140px;height:140px; border-radius:50%; background:rgba(255,255,255,0.08); }
+  .topbar h1{ font-family:'Kanit',sans-serif; font-size:20px; margin:0 0 4px; }
+  .topbar p{ margin:0; font-size:12.5px; opacity:.85; }
+  .wrap{ padding:14px 14px 0; max-width:560px; margin:0 auto; }
+
+  /* ---------- Stepper (+/-) ---------- */
+  .stepper{ display:flex; align-items:stretch; gap:3px; }
+  .stepper input{ text-align:center; flex:1; min-width:0; padding-left:2px; padding-right:2px; }
+  .step-btn{
+    flex:none; width:26px; border:1px solid var(--line); background:var(--teal-soft);
+    color:var(--teal-dark); border-radius:7px; font-size:15px; font-weight:700;
+    cursor:pointer; user-select:none; touch-action:manipulation;
+  }
+  .step-btn:active{ background:var(--teal); color:#fff; }
+
+  /* ---------- Responsive: restore multi-column once there's real room ---------- */
+  @media (min-width:480px){
+    .grid3{ grid-template-columns:repeat(3,1fr); }
+    .fsl-box{ grid-template-columns:repeat(3,1fr); }
+    .received-row{ grid-template-columns:1fr 1fr auto; align-items:end; }
+    .received-row .total-box{ text-align:center; padding-top:0; border-top:none; }
+  }
+
+  /* ---------- Responsive (tablet / desktop) ---------- */
+  @media (min-width:760px){
+    .wrap{ max-width:980px; }
+    .footer-bar .inner{ max-width:980px; }
+    #cupContainer{ display:grid; grid-template-columns:1fr 1fr; gap:14px; align-items:start; }
+    #cupContainer .cup-card{ margin-bottom:0; }
+    .card{ padding:20px; }
+  }
+  .card{ background:var(--card); border-radius:var(--radius); padding:16px; margin-bottom:14px; box-shadow:0 1px 3px rgba(20,30,25,.06); border:1px solid var(--line); }
+  .card h2{ font-family:'Kanit',sans-serif; font-size:15px; margin:0 0 12px; color:var(--teal-dark); display:flex; align-items:center; gap:8px; }
+  .card h2 .num{ background:var(--teal); color:#fff; width:22px;height:22px; border-radius:7px; font-size:12px; display:flex;align-items:center;justify-content:center; flex:none; }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .field{ flex:1; min-width:120px; }
+  .field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:4px; }
+  input, select{ width:100%; border:1px solid var(--line); border-radius:10px; padding:9px 10px; font-size:14px; font-family:'Noto Sans Thai',sans-serif; background:#FCFBF8; color:var(--ink); }
+  input:focus, select:focus{ outline:none; border-color:var(--teal); background:#fff; }
+  input[readonly]{ background:var(--teal-soft); border-color:transparent; font-weight:600; color:var(--teal-dark); }
+  .autofill-box{ background:var(--teal-soft); border-radius:10px; padding:12px 14px; margin-top:8px; }
+  .af-row{ display:flex; justify-content:space-between; align-items:center; padding:4px 0; font-size:13px; color:var(--teal-dark); border-bottom:1px dashed rgba(18,58,102,.15); }
+  .af-row:last-of-type{ border-bottom:none; }
+  .af-row span{ color:var(--muted); }
+  .af-row b{ font-size:15px; font-family:'Kanit',sans-serif; }
+  .af-hint{ margin-top:8px; font-size:11px; color:var(--teal-dark); font-weight:600; text-align:center; }
+  .switch-row{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin-top:8px; cursor:pointer; user-select:none; }
+  .switch-row input{ width:auto; }
+  .sub-box{ display:none; background:var(--caramel-soft); border-radius:10px; padding:10px; margin-top:8px; }
+  .sub-box.show{ display:block; }
+
+  .cup-card{ border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; background:#FCFBF8; }
+  .cup-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .cup-head .name{ font-weight:700; font-size:14px; }
+  .cup-head .tag{ font-size:10.5px; padding:2px 8px; border-radius:20px; font-weight:600; }
+  .tag-reset{ background:var(--teal-soft); color:var(--teal-dark); }
+  .tag-carry{ background:var(--caramel-soft); color:var(--caramel); }
+  .cup-head .price{ font-size:12px; color:var(--caramel); font-weight:600; }
+  .grid3{ display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:8px; }
+  .fsl-box{ background:var(--paper); border-radius:8px; padding:8px; display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:8px; }
+  .fsl-box .field label{ font-size:10.5px; }
+  .received-row{ background:var(--teal-soft); border-radius:8px; padding:8px; display:grid; grid-template-columns:1fr; gap:8px; margin-bottom:8px; }
+  .received-row .total-box{ text-align:left; padding-top:4px; border-top:1px dashed rgba(0,0,0,.1); }
+  .received-row .total-box .val{ font-family:'Kanit',sans-serif; font-size:18px; color:var(--teal-dark); }
+  .received-row .total-box label{ font-size:10.5px; color:var(--muted); }
+  .result-line{ display:flex; justify-content:space-between; margin-top:6px; padding-top:8px; border-top:1px dashed var(--line); font-size:13px; }
+  .result-line2{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:2px; }
+  .result-line b{ color:var(--teal-dark); }
+  .money-breakdown{ margin-top:8px; padding-top:8px; border-top:1px dashed var(--line); }
+  .mb-row{ display:flex; justify-content:space-between; font-size:12.5px; color:var(--muted); padding:2px 0; }
+  .mb-row b{ color:var(--ink); font-weight:600; }
+  .mb-row.total{ font-size:13.5px; padding-top:6px; margin-top:2px; border-top:1px solid var(--line); }
+  .mb-row.total span, .mb-row.total b{ color:var(--teal-dark); font-weight:700; }
+  .warn-text{ font-size:11.5px; color:var(--red); margin-top:6px; display:none; font-weight:600; }
+  .warn-text.show{ display:block; }
+  .checksum-row{ display:flex; justify-content:space-between; align-items:center; gap:6px; font-size:10.5px; color:var(--muted); margin-top:4px; }
+  .checksum-row b{ font-size:13px; }
+  .checksum-row b.ok{ color:var(--green); }
+  .checksum-row b.bad{ color:var(--red); }
+  .mismatch-box{ display:none; background:var(--orange-soft); border-radius:8px; padding:8px; margin-top:6px; }
+  .mismatch-box.show{ display:block; }
+  .mismatch-box label{ font-size:11px; color:var(--orange); }
+  .mismatch-box .expect{ font-size:11.5px; color:var(--muted); margin-bottom:6px; }
+  .seal-summary{ background:var(--teal-soft); border-radius:8px; padding:8px 10px; margin-top:8px; }
+  .ss-row{ display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0; color:var(--teal-dark); }
+  .ss-row b{ font-family:'Kanit',sans-serif; font-size:14px; }
+
+  table{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  th, td{ padding:6px 4px; border-bottom:1px solid var(--line); text-align:left; }
+  th{ color:var(--muted); font-weight:600; font-size:11.5px; }
+  td input, td select{ padding:6px; font-size:12.5px; }
+
+  .cash-list{ display:flex; flex-direction:column; gap:8px; }
+  .cash-row{
+    background:#FCFBF8; border:1px solid var(--line); border-radius:10px; padding:9px 10px;
+  }
+  .cash-row-top{ display:flex; align-items:center; gap:8px; }
+  .cash-row .cash-label{ flex:0 0 64px; font-size:13px; font-weight:600; }
+  .cash-row .stepper{ flex:1; min-width:0; }
+  .cash-row .cash-sub{ margin-top:5px; font-size:13px; color:var(--ink); font-weight:600; text-align:right; }
+  @media (min-width:760px){
+    .cash-list{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  }
+  .btn-add{ margin-top:8px; background:var(--teal-soft); color:var(--teal-dark); border:none; border-radius:8px; padding:8px 12px; font-size:12.5px; font-weight:600; cursor:pointer; }
+  .del-btn{ background:none;border:none;color:var(--red);cursor:pointer;font-size:15px; }
+
+  .multi-upload{ border:1.5px dashed var(--line); border-radius:10px; padding:14px; text-align:center; font-size:12.5px; color:var(--muted); cursor:pointer; margin-bottom:10px; background:#FCFBF8; }
+  .multi-upload input{ display:none; }
+  .upload-thumb{ width:34px;height:34px;object-fit:cover;border-radius:6px; }
+
+  .image-gallery{ display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+  .gallery-thumb{ position:relative; width:64px; height:64px; }
+  .gallery-thumb img{ width:100%; height:100%; object-fit:cover; border-radius:8px; border:1px solid var(--line); }
+  .thumb-del{
+    position:absolute; top:-6px; right:-6px; width:20px; height:20px; border-radius:50%;
+    background:var(--red); color:#fff; border:2px solid #fff; font-size:11px; cursor:pointer; line-height:1;
+  }
+
+  .summary-line{ display:flex; justify-content:space-between; padding:7px 0; font-size:13.5px; border-bottom:1px dashed var(--line); }
+  .summary-line:last-child{ border-bottom:none; }
+  .summary-line.total{ font-weight:700; font-size:15px; color:var(--teal-dark); padding-top:10px; }
+  .summary-line input{ width:100px; text-align:right; }
+
+  .status-pill{ display:flex; align-items:flex-start; gap:8px; padding:10px 12px; border-radius:10px; font-size:12.5px; font-weight:600; margin-top:8px; line-height:1.5; }
+  .status-ok{ background:var(--green-soft); color:var(--green); }
+  .status-orange{ background:var(--orange-soft); color:var(--orange); }
+  .status-red{ background:var(--red-soft); color:var(--red); }
+  .dot{ width:8px;height:8px;border-radius:50%; background:currentColor; margin-top:5px; flex:none; }
+  .status-pill ul{ margin:2px 0 0; padding-left:16px; font-weight:500; }
+
+  .footer-bar{ position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line); padding:10px 16px 14px; box-shadow:0 -4px 14px rgba(0,0,0,.06); }
+  .footer-bar .inner{ max-width:560px; margin:0 auto; }
+  .footer-row{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+  .footer-row .amt{ font-family:'Kanit',sans-serif; font-size:20px; color:var(--teal-dark); }
+  .save-btn{ background:var(--teal); color:#fff; border:none; padding:11px 20px; border-radius:12px; font-family:'Noto Sans Thai',sans-serif; font-weight:600; font-size:14px; cursor:pointer; }
+  .save-btn:disabled{ background:#B9B4A6; cursor:not-allowed; }
+  .footer-sub{ font-size:11px; color:var(--muted); margin-top:2px; }
+  .footer-flag{ font-size:11px; margin-top:2px; font-weight:700; }
+  .footer-flag.ok{ color:var(--green); }
+  .footer-flag.orange{ color:var(--orange); }
+  .footer-flag.red{ color:var(--red); }
+
+  .note{ font-size:11.5px; color:var(--muted); margin-top:6px; line-height:1.5; }
+  .override-panel{ background:var(--red-soft); border-radius:10px; padding:12px; margin-top:10px; }
+  .op-title{ font-weight:700; color:var(--red); font-size:13.5px; margin-bottom:4px; }
+  .op-note{ font-size:11.5px; color:var(--muted); margin-bottom:8px; line-height:1.5; }
+  #overrideNote{ width:100%; border:1px solid var(--line); border-radius:8px; padding:8px; font-family:'Noto Sans Thai',sans-serif; font-size:13px; resize:vertical; }
+  .override-btn{ margin-top:8px; width:100%; background:var(--red); color:#fff; border:none; border-radius:10px; padding:10px; font-weight:700; font-size:13.5px; cursor:pointer; }
+  .commission-banner{ margin-top:10px; padding:14px; border-radius:12px; text-align:center; font-family:'Kanit',sans-serif; font-size:15px; font-weight:600; background:var(--teal-soft); color:var(--teal-dark); }
+  .commission-banner.gold{ background:#FFF3D6; color:#8A6116; }
+  .icon-btn{
+    background:var(--teal-soft); color:var(--teal-dark); border:none;
+    width:38px;height:38px; border-radius:10px; font-size:16px; cursor:pointer;
+  }
+
+  @media print{
+    body{ padding-bottom:0; background:#fff; }
+    .topbar{ border-radius:0; background:#fff !important; color:#000 !important; box-shadow:none; }
+    .topbar::after{ display:none; }
+    .back-pill{ display:none !important; }
+    .footer-bar{ display:none; }
+    .multi-upload{ display:none; }
+    .toast{ display:none; }
+    input, select{ border:1px solid #999 !important; background:#fff !important; color:#000 !important; }
+    .card{ box-shadow:none; border:1px solid #999; break-inside:avoid; }
+    .btn-add, .del-btn{ display:none; }
+    .step-btn{ display:none; }
+    .stepper{ display:block; }
+    .status-pill, .mismatch-box, .warn-text{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  }
+  .toast{ position:fixed; top:16px; left:50%; transform:translateX(-50%); background:var(--teal-dark); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:90%; text-align:center; }
+  .toast.show{ opacity:1; }
+
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(20,30,25,.55);
+    display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .modal-overlay.show{ display:flex; }
+  .modal-box{
+    background:#fff; border-radius:16px; padding:24px 20px; max-width:340px; width:100%;
+    text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.2);
+  }
+  .modal-box .pin{ font-size:28px; }
+  .modal-box .branch-name{ font-family:'Kanit',sans-serif; font-size:20px; color:var(--teal-dark); margin:8px 0 4px; }
+  .modal-box .q{ font-size:13px; color:var(--muted); margin-bottom:18px; }
+  .modal-btn-row{ display:flex; gap:10px; }
+  .modal-btn{ flex:1; padding:11px; border-radius:10px; border:none; font-weight:600; font-size:14px; cursor:pointer; }
+  .modal-btn.no{ background:var(--red-soft); color:var(--red); }
+  .modal-btn.yes{ background:var(--teal); color:#fff; }
+
+  .wheel-wrap{ position:relative; display:flex; justify-content:center; align-items:center; height:180px; gap:8px; }
+  .wheel-highlight{
+    position:absolute; left:8%; right:8%; top:50%; transform:translateY(-50%);
+    height:44px; background:var(--teal-soft); border-radius:10px; z-index:0; pointer-events:none;
+  }
+  .wheel-col{
+    position:relative; z-index:1; height:180px; width:70px; overflow-y:scroll;
+    scroll-snap-type:y mandatory; -webkit-overflow-scrolling:touch; text-align:center;
+    scrollbar-width:none;
+  }
+  .wheel-col::-webkit-scrollbar{ display:none; }
+  .wheel-item{
+    height:44px; line-height:44px; scroll-snap-align:center; font-size:20px;
+    font-family:'Kanit',sans-serif; color:var(--muted);
+  }
+  .wheel-sep{ font-size:22px; font-weight:700; color:var(--teal-dark); z-index:1; }
+  .time-display{
+    text-align:center; font-family:'Kanit',sans-serif; font-size:28px; color:var(--teal-dark);
+    margin-bottom:6px;
+  }
+  .branch-pick-list{ max-height:300px; overflow-y:auto; margin-top:8px; border-top:1px solid var(--line); }
+  .branch-pick-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid var(--line); cursor:pointer; }
+  .branch-pick-row:active{ background:var(--teal-soft); }
+  .branch-pick-row b{ font-size:13.5px; }
+  .branch-pick-row span{ color:var(--muted); font-size:11.5px; }
 </style>
 </head>
 <body>
 
-<!-- เนื้อหา HTML ทั้งหมดของพี่เจต -->
-<!-- (นำเนื้อหา HTML เดิมตั้งแต่ <body> จนถึง <script> มาวางที่นี่ค่ะ) -->
+<div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="timePickerModal">
+  <div class="modal-box" style="max-width:280px;">
+    <div class="q" style="margin-bottom:6px; font-weight:700;" id="timePickerTitle">เลือกเวลา</div>
+    <div class="wheel-wrap">
+      <div class="wheel-highlight"></div>
+      <div class="wheel-col" id="wheelHour"></div>
+      <div class="wheel-sep">:</div>
+      <div class="wheel-col" id="wheelMinute"></div>
+    </div>
+    <div class="modal-btn-row" style="margin-top:10px;">
+      <button class="modal-btn no" onclick="closeTimePicker()">ยกเลิก</button>
+      <button class="modal-btn yes" onclick="confirmTimePicker()">ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="branchPickerModal">
+  <div class="modal-box" style="text-align:left; max-width:380px;">
+    <div class="q" style="margin-bottom:10px; font-weight:700;">🔍 เลือกสาขา (ค้นหาจากชื่อได้)</div>
+    <input id="branchPickerSearch" placeholder="พิมพ์ชื่อสาขา...">
+    <div id="branchPickerList" class="branch-pick-list"></div>
+    <button class="modal-btn no" style="width:100%; margin-top:10px;" onclick="closeBranchPicker()">ปิด</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="branchConfirmModal">
+  <div class="modal-box">
+    <div class="pin">📍</div>
+    <div class="q">กำลังบันทึกข้อมูลของสาขา</div>
+    <div class="branch-name" id="branchConfirmName">-</div>
+    <div class="q">ใช่สาขานี้หรือไม่?</div>
+    <div class="modal-btn-row">
+      <button class="modal-btn no" onclick="rejectBranchConfirm()">❌ ไม่ใช่ กรอกใหม่</button>
+      <button class="modal-btn yes" onclick="acceptBranchConfirm()">✅ ใช่ ยืนยัน</button>
+    </div>
+  </div>
+</div>
+
+<div class="topbar">
+  <a href="dashboard.html" id="backToMenu" class="back-pill" style="display:none;">‹ กลับเมนูหลัก</a>
+  <h1>ใบรายการขายประจำวัน</h1>
+  <p>กรอกยอดขายประจำวัน — ระบบคำนวณและตรวจสอบให้อัตโนมัติ</p>
+  <p style="opacity:.6; font-size:10px; margin-top:4px;">เวอร์ชันฟอร์ม: v4-debugbox-2026-07-14</p>
+</div>
+
+<div class="wrap">
+
+  <!-- 1. พนักงาน -->
+  <div class="card">
+    <h2><span class="num">1</span>ข้อมูลพนักงาน &amp; สาขา</h2>
+    <div class="row" id="empCodeRow">
+      <div class="field" id="empCodeField"><label>รหัสพนักงาน</label><input id="empCode" placeholder="เช่น 0001" inputmode="numeric"></div>
+      <div class="field"><label>วันที่</label><input id="saleDate" type="date"></div>
+    </div>
+    <div id="autofillBox" class="autofill-box">
+      <div class="af-row" id="afEmpCodeRow" style="display:none;"><span>รหัสพนักงาน</span><b id="afEmpCode">-</b></div>
+      <div class="af-row"><span>ชื่อ</span><b id="afFirstName">-</b></div>
+      <div class="af-row"><span>นามสกุล</span><b id="afLastName">-</b></div>
+      <div class="af-row"><span>ชื่อเล่น</span><b id="afNickname">-</b></div>
+      <div class="af-row" id="afBranchRow"><span>สาขา</span><b id="afBranch">-</b></div>
+      <div class="af-row" id="afBranchCodeRow"><span>รหัสสาขา</span><b id="afBranchCode">-</b></div>
+      <div class="af-hint">กรุณาตรวจสอบชื่อ-สาขาให้ตรงกับตัวเองก่อนกรอกต่อ</div>
+    </div>
+
+    <label class="switch-row">
+      <input type="checkbox" id="substituteToggle">
+      ไปขายแทนพนักงาน/สาขาอื่น (กรอกรหัสสาขาเองแทนระบบ)
+    </label>
+    <div class="sub-box" id="subBox">
+      <div class="field">
+        <label>รหัสสาขาที่ไปขายแทน</label>
+        <div style="display:flex; gap:6px;">
+          <input id="subBranchCode" list="branchDatalist" placeholder="พิมพ์รหัสหรือชื่อสาขา" style="flex:1;">
+          <datalist id="branchDatalist"></datalist>
+          <button type="button" class="icon-btn" onclick="openBranchPicker()" title="เลือกสาขาจากรายชื่อ">🔍</button>
+        </div>
+      </div>
+      <div class="af-row" id="subBranchNameRow" style="display:none; background:var(--teal-soft); border-radius:8px; padding:8px 10px; margin-top:8px; border-bottom:none;">
+        <span>สาขาที่ไปขายแทน</span><b id="subBranchNameDisplay">-</b>
+      </div>
+      <div class="note">พิมพ์รหัสสาขา ระบบจะขึ้นชื่อสาขาให้อัตโนมัติ ถ้าจำรหัสไม่ได้ กดปุ่ม 🔍 เพื่อค้นหาจากชื่อสาขาแทนได้ — รหัสพนักงาน (ตัวเอง) ใช้ช่องด้านบนตามปกติ ไม่ต้องกรอกซ้ำที่นี่ ระบบจะดึงยอดค้าง (น้ำเต้าหู้/เครื่องซีล) ของสาขาที่ไปขายแทนมาให้ตามจริง ไม่ใช่ของสาขาตัวเอง</div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <div class="field"><label>เวลาเปิดร้าน</label><input id="timeOpen" type="text" readonly placeholder="แตะเลือกเวลา" onclick="openTimePicker('timeOpen','เวลาเปิดร้าน')"></div>
+      <div class="field"><label>เวลาปิดร้าน</label><input id="timeClose" type="text" readonly placeholder="แตะเลือกเวลา" onclick="openTimePicker('timeClose','เวลาปิดร้าน')"></div>
+      <div class="field"><label>น้ำแข็ง (กระสอบ)</label><input id="iceBags" type="number" min="0" value="0"></div>
+    </div>
+
+    <div class="row">
+      <div class="field">
+        <label>เครื่องซีล — เลขเปิด (เช้า) <span style="color:var(--caramel)">ยกมาจากเมื่อวาน</span></label>
+        <input id="sealOpen" type="number" min="0" value="0">
+      </div>
+      <div class="field"><label>เครื่องซีล — เลขปิด (เย็น)</label><input id="sealClose" type="number" min="0" value="0"></div>
+    </div>
+    <div class="mismatch-box" id="sealOpenMismatchBox">
+      <div class="expect">ระบบคาดว่าเลขเปิดควรเป็น <b id="sealOpenExpected">0</b> (เลขปิดของเมื่อวาน) — กรุณาระบุสาเหตุที่ไม่ตรง</div>
+      <select id="sealOpenReason">
+        <option value="">-- เลือกสาเหตุ --</option>
+        <option>เปลี่ยนเครื่องซีล</option>
+        <option>เครื่องซีลเสีย</option>
+        <option>จดตัวเลขผิด</option>
+        <option value="other">อื่นๆ (ระบุ)</option>
+      </select>
+      <input id="sealOpenReasonOther" placeholder="ระบุสาเหตุ..." style="margin-top:6px; display:none;">
+    </div>
+
+    <div class="seal-summary">
+      <div class="ss-row"><span>ผลต่างเครื่องซีล (ปิด−เปิด)</span><b id="sealDiffDisplay">0</b></div>
+      <div class="ss-row"><span>รวมแก้วที่จ่ายออก (โอน+ขาย+ฟรี+เสีย+ไลน์แมน จัมโบ้+ใหญ่+เล็ก)</span><b id="sealDispatchDisplay">0</b></div>
+    </div>
+    <div class="mismatch-box" id="sealDispatchMismatchBox">
+      <div class="expect">2 ค่าด้านบนไม่ตรงกัน — กรุณาระบุสาเหตุ (ติดสถานะส้ม ยังส่งข้อมูลได้)</div>
+      <select id="sealDispatchReason">
+        <option value="">-- เลือกสาเหตุ --</option>
+        <option>ซีลซ้ำ</option>
+        <option>เทสเครื่อง</option>
+        <option>เปลี่ยนเครื่องซีล</option>
+        <option>กดผิดลบเลขซีล</option>
+        <option>พนักงานก่อนหน้าลงผิด</option>
+        <option value="other">อื่นๆ (ระบุ)</option>
+      </select>
+      <input id="sealDispatchReasonOther" placeholder="ระบุสาเหตุ..." style="margin-top:6px; display:none;">
+    </div>
+  </div>
+
+  <!-- 2. แก้ว -->
+  <div class="card">
+    <h2><span class="num">2</span>รายการแก้ว</h2>
+    <div id="cupContainer"></div>
+    <div class="note">
+      แก้วจัมโบ้ / ใหญ่ / เล็ก: แก้วตั้งต้นกำหนดเป็น 50 ใบทุกสาขา แก้ไขให้ตรงกับที่นับจริงได้โดยไม่ติดสถานะใดๆ<br>
+      น้ำเต้าหู้: ใช้ยอดคงเหลือจริงจากเมื่อวานเป็นยอดยกมา หากไม่ตรงต้องระบุสาเหตุ และระบบจะติดสถานะสีส้มไว้ให้แอดมินตรวจ
+    </div>
+  </div>
+
+  <!-- 3. เพิ่มไข่มุก/วุ้น -->
+  <div class="card">
+    <h2><span class="num">3</span>เงินเพิ่มไข่มุก/วุ้น</h2>
+    <div class="row" style="margin-bottom:0;">
+      <div class="field"><label>จำนวนช้อนที่เพิ่ม</label><input id="addonQty" type="number" min="0" value="0"></div>
+      <div class="field"><label>ราคา/ช้อน (บาท)</label><input id="addonPrice" type="number" min="0" value="5"></div>
+      <div class="field"><label>รวมเป็นเงิน</label><input id="addonTotal" readonly value="0"></div>
+    </div>
+  </div>
+
+  <!-- 4. เงินโอนเข้าบริษัท -->
+  <div class="card">
+    <h2><span class="num">4</span>เงินโอนเข้าบริษัท</h2>
+    <div class="field" style="margin-bottom:10px;">
+      <label>ยอดโอนรวมทั้งหมด (พนักงานกรอกเอง)</label>
+      <input id="transferManualTotal" type="number" min="0" value="0">
+    </div>
+    <label class="multi-upload">
+      📎 แนบภาพสลิปได้ทีเดียวหลายภาพ (ให้ระบบช่วยอ่านยอด)
+      <input type="file" accept="image/*" multiple id="slipMultiInput" onchange="handleMultiUpload(this,'transfer')">
+    </label>
+    <div id="transferImageGallery" class="image-gallery"></div>
+    <button class="btn-add" onclick="readSlipImages()">🔍 ให้ระบบอ่านยอดจากภาพ</button>
+
+    <div class="result-line"><span>ยอดที่พนักงานกรอก</span><b id="transferManualDisplay">0.00 บาท</b></div>
+    <div class="result-line2"><span>ยอดที่ระบบอ่านได้จากภาพ</span><b id="transferOcrTotal">ยังไม่ได้อ่าน</b></div>
+    <div class="result-line2"><span>ยอดโอนตามแก้ว (จัมโบ้+ใหญ่+เล็ก+น้ำเต้าหู้ x ราคา)</span><b id="transferFromCups">0.00 บาท</b></div>
+    <div id="transferMismatchMsg" class="warn-text" style="color:var(--orange);"></div>
+    <pre id="transferDebugBox" style="display:none; background:#1B2B29; color:#8FE3A0; font-size:10px; padding:8px; border-radius:8px; white-space:pre-wrap; word-break:break-all; margin-top:8px; max-height:200px; overflow-y:auto;"></pre>
+    <div class="note">ยอดจากภาพเทียบกับยอดที่กรอกเองเพื่อกันความผิดพลาด — ถ้าไม่ตรงกัน (เช่น ภาพเบลอ อ่านไม่ออก) ระบบจะติดสถานะส้มให้ตรวจสอบ แต่ยังส่งข้อมูลได้ตามปกติ</div>
+  </div>
+
+  <!-- 5. ไลน์แมน -->
+  <div class="card">
+    <h2><span class="num">5</span>ออเดอร์ไลน์แมน (LINE MAN)</h2>
+    <label class="multi-upload">
+      📎 แนบภาพออเดอร์ได้ทีเดียวหลายภาพ
+      <input type="file" accept="image/*" multiple id="lmMultiInput" onchange="handleMultiUpload(this,'lineman')">
+    </label>
+    <div id="linemanImageGallery" class="image-gallery"></div>
+    <button class="btn-add" onclick="readLinemanImages()">🔍 ให้ระบบอ่านออเดอร์จากภาพ</button>
+
+    <table id="linemanResultTable" style="margin-top:10px;">
+      <thead><tr><th>เลขออเดอร์</th><th>จัมโบ้</th><th>ใหญ่</th><th>เล็ก</th><th>น้ำเต้าหู้</th></tr></thead>
+      <tbody id="linemanResultBody"></tbody>
+    </table>
+    <div class="result-line"><span>สรุปรวมจากภาพ</span><b id="linemanOcrSummary">ยังไม่ได้อ่าน</b></div>
+    <div id="linemanCheck" class="note"></div>
+  </div>
+
+  <!-- 6. นับเงินสด -->
+  <div class="card">
+    <h2><span class="num">6</span>นับธนบัตร / เหรียญ (ยอดเงินสดจริง)</h2>
+    <div id="cashTable" class="cash-list"></div>
+    <div class="result-line"><span>รวมเงินสดที่นับได้จริง</span><b id="cashTotal">0.00 บาท</b></div>
+  </div>
+
+  <!-- 7. สรุปเงิน + สถานะ -->
+  <div class="card">
+    <h2><span class="num">7</span>สรุปยอด &amp; สถานะตรวจสอบ</h2>
+    <div class="summary-line"><span>ยอดขายรวม (เงินสด+โอน+ไข่มุก/วุ้น)</span><b id="sumSales">0.00</b></div>
+    <div class="summary-line"><span>หัก ยอดตัดยอด</span><input id="cutoff" type="number" min="0" value="0" data-step="100"></div>
+    <div class="summary-line"><span>หัก ค่าใช้จ่าย</span><input id="expense" type="number" min="0" value="0"></div>
+    <div class="summary-line"><span>หัก ยอดโอนเข้าบริษัท (อัตโนมัติจากแก้วโอน)</span><b id="sumTransfer">0.00</b></div>
+    <div class="summary-line total"><span>คงเหลือที่ต้องนำส่ง</span><b id="sumRemain">0.00 บาท</b></div>
+
+    <div id="cashMatchStatus"></div>
+    <div id="sealDispatchStatus"></div>
+    <div id="redBalanceStatus"></div>
+
+    <div id="overridePanel" class="override-panel" style="display:none;">
+      <div class="op-title">⚠ พบข้อมูลไม่สมดุล (ติดสถานะแดง) ยังบันทึกปกติไม่ได้</div>
+      <div class="op-note">ถ้าต้องการส่งข้อมูลนี้ทั้งที่มีปัญหา (เช่น จะไปแก้ไขทีหลัง) กรุณาระบุหมายเหตุแล้วขออนุมัติส่งข้อมูล ระบบจะแจ้งเข้ากลุ่มไลน์ให้ผู้เกี่ยวข้องตรวจสอบทันที</div>
+      <textarea id="overrideNote" placeholder="ระบุหมายเหตุ/สาเหตุของปัญหาที่เกิดขึ้น..." rows="3"></textarea>
+      <button class="override-btn" onclick="submitOverride()">📤 ขออนุมัติส่งข้อมูล</button>
+    </div>
+
+    <div id="commissionBanner" class="commission-banner" style="display:none;"></div>
+  </div>
+
+</div>
+
+<div class="footer-bar">
+  <div class="inner">
+    <div class="footer-row">
+      <div>
+        <div class="footer-sub">คงเหลือที่ต้องนำส่ง</div>
+        <div class="amt" id="footerAmt">0.00 บาท</div>
+        <div class="footer-flag ok" id="footerFlag">พร้อมบันทึก</div>
+        <div id="draftStatus" style="font-size:10px; color:var(--muted); margin-top:2px;"></div>
+      </div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="icon-btn" onclick="printForm()" title="พิมพ์">🖨️</button>
+        <button class="icon-btn" onclick="exportCSV()" title="Export CSV">⬇️</button>
+        <button class="save-btn" id="saveBtn" onclick="saveForm()">บันทึกรายการ</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <script>
 // =====================================================================
-// ลิงก์ Web App (พี่เจตใช้ของเดิมได้เลยค่ะ)
+// ลิงก์ Web App จาก Google Apps Script (Deploy > Web app)
 const API_URL = "https://script.google.com/macros/s/AKfycbx27a3ZCoBP18F98dNrEbX9dk0DhGtmxp8K3kQIttaWqRxv7ilCKUOuhf3C4Fu1vQTv/exec";
+// =====================================================================
 
-// ฟังก์ชันค้นหาพนักงานที่แก้ไขให้ดึงข้อมูลลงช่อง ID เดิมของพี่เจต
+const cupTypes = [
+  {key:'jumbo', label:'แก้วจัมโบ้', price:35, type:'reset', sealed:true},
+  {key:'large', label:'แก้วใหญ่',   price:30, type:'reset', sealed:true},
+  {key:'small', label:'แก้วเล็ก',   price:25, type:'reset', sealed:true},
+  {key:'soy',   label:'น้ำเต้าหู้', price:15, type:'carryover', sealed:false},
+];
+
+let expectedSoyCarry = 0;
+let expectedSealOpen = 0;
+let resolvedBranchCode = '';
+let resolvedBranchName = '';
+
+function el(tag, attrs={}, html=''){
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));
+  e.innerHTML = html;
+  return e;
+}
+
+// ---------- STEPPER (+/-) WITH LONG-PRESS REPEAT ----------
+function attachStepper(input){
+  if(input.closest('.stepper')) return; // already wrapped, skip
+  const step = parseFloat(input.getAttribute('data-step')) || parseFloat(input.step) || 1;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'stepper';
+  input.parentNode.insertBefore(wrap, input);
+
+  const minus = document.createElement('button');
+  minus.type = 'button'; minus.className = 'step-btn'; minus.textContent = '−';
+  const plus = document.createElement('button');
+  plus.type = 'button'; plus.className = 'step-btn'; plus.textContent = '+';
+
+  wrap.appendChild(minus);
+  wrap.appendChild(input);
+  wrap.appendChild(plus);
+
+  function change(delta){
+    let v = parseFloat(input.value) || 0;
+    v += delta;
+    const min = input.hasAttribute('min') ? parseFloat(input.min) : null;
+    if(min !== null && v < min) v = min;
+    // round to avoid floating point artifacts (e.g. 0.1+0.2)
+    v = Math.round(v * 100) / 100;
+    input.value = v;
+    input.dispatchEvent(new Event('input', {bubbles:true}));
+  }
+
+  function bindHold(btn, delta){
+    let timeout = null, interval = null;
+    const start = (e)=>{
+      e.preventDefault();
+      change(delta);
+      timeout = setTimeout(()=>{
+        interval = setInterval(()=>change(delta), 90);
+      }, 400);
+    };
+    const stop = ()=>{ clearTimeout(timeout); clearInterval(interval); timeout=null; interval=null; };
+    btn.addEventListener('mousedown', start);
+    btn.addEventListener('touchstart', start, {passive:false});
+    ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>btn.addEventListener(ev, stop));
+  }
+
+  bindHold(minus, -step);
+  bindHold(plus, step);
+}
+
+function wrapAllNumberInputs(root=document){
+  root.querySelectorAll('input[type="number"]').forEach(attachStepper);
+}
+
+// ---------- BUILD CUP CARDS ----------
+const cupContainer = document.getElementById('cupContainer');
+cupTypes.forEach(c=>{
+  const card = el('div',{class:'cup-card','data-key':c.key,'data-type':c.type});
+  const receivedRowHtml = c.type === 'reset'
+    ? `<div class="received-row">
+         <div class="field"><label>แก้วตั้งต้น (par)</label><input type="number" min="0" value="50" class="in-base"></div>
+         <div class="field"><label>แก้วรับเพิ่มระหว่างวัน</label><input type="number" min="0" value="0" class="in-extra"></div>
+         <div class="total-box"><label>รับรวม</label><div class="val out-total-received">50</div></div>
+       </div>`
+    : `<div class="received-row">
+         <div class="field"><label>ยอดยกมา (เมื่อวาน)</label><input type="number" min="0" value="0" class="in-base in-carry"></div>
+         <div class="field"><label>แก้วรับเพิ่มระหว่างวัน</label><input type="number" min="0" value="0" class="in-extra"></div>
+         <div class="total-box"><label>รับรวม</label><div class="val out-total-received">0</div></div>
+       </div>
+       <div class="mismatch-box" data-role="carry-mismatch">
+         <div class="expect">ระบบคาดว่ายอดยกมาควรเป็น <b class="carry-expected">0</b> แก้ว (คงเหลือจริงของเมื่อวาน) — กรุณาระบุสาเหตุที่ไม่ตรง</div>
+         <select class="carry-reason">
+           <option value="">-- เลือกสาเหตุ --</option>
+           <option>นับยอดคงเหลือเมื่อวานผิด</option>
+           <option>มีการปรับสต๊อกไม่ได้บันทึก</option>
+           <option>แก้วชำรุด/สูญหายเพิ่มเติม</option>
+           <option value="other">อื่นๆ (ระบุ)</option>
+         </select>
+         <input class="carry-reason-other" placeholder="ระบุสาเหตุ..." style="margin-top:6px; display:none;">
+       </div>`;
+
+  card.innerHTML = `
+    <div class="cup-head">
+      <span class="name">${c.label}</span>
+      <span class="tag ${c.type==='reset'?'tag-reset':'tag-carry'}">${c.type==='reset' ? 'ตั้งต้นใหม่ทุกวัน' : 'ยกยอดจากเมื่อวาน'}</span>
+      <span class="price">฿${c.price} / แก้ว</span>
+    </div>
+    ${receivedRowHtml}
+    <div class="field" style="margin-bottom:8px;"><label>โอน (จ่ายผ่านโอน)</label><input type="number" min="0" value="0" class="in-transfer"></div>
+    <div class="result-line" style="margin-top:0; padding-top:0; border-top:none;">
+      <span>ขายไป (เงินสด) — คำนวณอัตโนมัติ</span>
+      <b><span class="out-sold">0</span> แก้ว</b>
+    </div>
+    <div class="fsl-box" style="margin-top:8px;">
+      <div class="field"><label>ฟรี</label><input type="number" min="0" value="0" class="in-free"></div>
+      <div class="field"><label>เสีย</label><input type="number" min="0" value="0" class="in-damaged"></div>
+      <div class="field"><label>ไลน์แมน</label><input type="number" min="0" value="0" class="in-lineman"></div>
+    </div>
+    <div class="field" style="margin-top:8px;"><label>แก้วคงเหลือ</label><input type="number" min="0" value="0" class="in-remaining"></div>
+    <div class="money-breakdown">
+      <div class="mb-row"><span>ยอดโอน</span><b class="out-transfer-revenue">0.00</b></div>
+      <div class="mb-row"><span>+ ขายเงินสด</span><b class="out-revenue">0.00</b></div>
+      <div class="mb-row total"><span>= ยอดขาย <span class="out-total-cups">0</span> แก้ว เป็นเงิน</span><b><span class="out-total-revenue">0.00</span> บาท</b></div>
+    </div>
+    <div class="checksum-row"><span class="out-checksum-text">เช็ค: รับรวม 0 = โอน 0+คงเหลือ 0+ฟรี 0+เสีย 0+ไลน์แมน 0+ขายเงินสด 0</span> <b class="out-checksum-mark">✓</b></div>
+    <div class="warn-text">⚠ ยอดไม่สมดุล (แก้วรับ ไม่พอกับ โอน+ขาย+ฟรี/เสีย/ไลน์แมน+คงเหลือ) — ติดสถานะแดง ห้ามส่งข้อมูล</div>
+  `;
+  cupContainer.appendChild(card);
+  card.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', recalcAll));
+
+  if(c.type === 'carryover'){
+    const carryInput = card.querySelector('.in-carry');
+    carryInput.addEventListener('input', ()=>checkCarryMismatch(card));
+    const reasonSelect = card.querySelector('.carry-reason');
+    reasonSelect.addEventListener('change', function(){
+      card.querySelector('.carry-reason-other').style.display = this.value === 'other' ? 'block' : 'none';
+      recalcAll();
+    });
+    card.querySelector('.carry-reason-other').addEventListener('input', recalcAll);
+  }
+});
+
+document.getElementById('sealOpen').addEventListener('input', checkSealOpenMismatch);
+document.getElementById('sealOpenReason').addEventListener('change', function(){
+  document.getElementById('sealOpenReasonOther').style.display = this.value === 'other' ? 'block' : 'none';
+  recalcAll();
+});
+document.getElementById('sealOpenReasonOther').addEventListener('input', recalcAll);
+
+function checkCarryMismatch(card){
+  const box = card.querySelector('[data-role="carry-mismatch"]');
+  const val = +card.querySelector('.in-carry').value || 0;
+  const mismatch = val !== expectedSoyCarry;
+  box.classList.toggle('show', mismatch);
+  card.querySelector('.carry-expected').textContent = expectedSoyCarry;
+  recalcAll();
+}
+
+function checkSealOpenMismatch(){
+  const box = document.getElementById('sealOpenMismatchBox');
+  const val = +document.getElementById('sealOpen').value || 0;
+  const mismatch = val !== expectedSealOpen;
+  box.classList.toggle('show', mismatch);
+  document.getElementById('sealOpenExpected').textContent = expectedSealOpen;
+  recalcAll();
+}
+
+// ---------- BRANCH CARRYOVER LOADING ----------
+function loadBranchCarryover(branchCode){
+  resolvedBranchCode = branchCode || '';
+  const applyData = (soyRemaining, sealClose) => {
+    expectedSoyCarry = soyRemaining || 0;
+    expectedSealOpen = sealClose || 0;
+    const soyCard = document.querySelector('.cup-card[data-key="soy"]');
+    soyCard.querySelector('.in-carry').value = expectedSoyCarry;
+    document.getElementById('sealOpen').value = expectedSealOpen;
+    checkCarryMismatch(soyCard);
+    checkSealOpenMismatch();
+  };
+
+  fetch(`${API_URL}?action=getCarryover&branchCode=${encodeURIComponent(branchCode)}`)
+    .then(r=>r.json())
+    .then(res=> applyData(res.soyRemaining, res.sealClose))
+    .catch(()=> applyData(0,0));
+}
+
+// ---------- CASH COUNT ----------
+const cashDenoms = [
+  {label:'แบงค์ 1000', val:1000},{label:'แบงค์ 500', val:500},{label:'แบงค์ 100', val:100},
+  {label:'แบงค์ 50', val:50},{label:'แบงค์ 20', val:20},
+  {label:'เหรียญ 10', val:10},{label:'เหรียญ 5', val:5},{label:'เหรียญ 2', val:2},{label:'เหรียญ 1', val:1},
+];
+const cashTable = document.getElementById('cashTable');
+cashDenoms.forEach(d=>{
+  const row = el('div',{class:'cash-row','data-val':d.val});
+  row.innerHTML = `
+    <div class="cash-row-top">
+      <span class="cash-label">${d.label}</span>
+      <input type="number" min="0" value="0" class="cash-qty">
+    </div>
+    <div class="cash-sub">x${d.val} = 0</div>`;
+  cashTable.appendChild(row);
+  row.querySelector('.cash-qty').addEventListener('input', recalcAll);
+});
+
+// ---------- แกลเลอรีภาพ (สลิปโอน / ออเดอร์ไลน์แมน) ----------
+let transferImages = []; // { dataUrl, base64 }
+let linemanImages = [];
+let linemanOcrRows = []; // { order, jumbo, large, small, soy }
+
+function addImageToGallery(containerId, arr, dataUrl){
+  const mimeMatch = dataUrl.match(/^data:([^;]+);/);
+  const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const base64 = dataUrl.split(',')[1];
+  const entry = { dataUrl, base64, mimeType };
+  arr.push(entry);
+  const wrap = document.getElementById(containerId);
+  const thumb = document.createElement('div');
+  thumb.className = 'gallery-thumb';
+  const img = document.createElement('img'); img.src = dataUrl;
+  const del = document.createElement('button');
+  del.type = 'button'; del.className = 'thumb-del'; del.textContent = '✕';
+  del.onclick = () => {
+    const i = arr.indexOf(entry);
+    if(i > -1) arr.splice(i,1);
+    thumb.remove();
+  };
+  thumb.appendChild(img); thumb.appendChild(del);
+  wrap.appendChild(thumb);
+}
+
+// ---------- อ่านยอดสลิปโอนจากภาพ (Gemini OCR ผ่าน Code.gs) ----------
+function readSlipImages(){
+  if(!transferImages.length){ alert('กรุณาแนบภาพสลิปก่อน'); return; }
+  const el = document.getElementById('transferOcrTotal');
+  el.textContent = 'กำลังอ่านภาพ...';
+  fetch(API_URL, {
+    method:'POST',
+    body: JSON.stringify({
+      action:'readSlipImages',
+      images: transferImages.map(i=>i.base64),
+      mimeTypes: transferImages.map(i=>i.mimeType)
+    })
+  })
+    .then(r=>r.json())
+    .then(res=>{
+      const debugBox = document.getElementById('transferDebugBox');
+      debugBox.style.display = 'block';
+      debugBox.textContent = 'RAW RESPONSE:\n' + JSON.stringify(res, null, 2);
+
+      if(res.success){
+        let txt = res.total.toFixed(2) + ' บาท (' + res.readCount + '/' + transferImages.length + ' ภาพอ่านสำเร็จ)';
+        el.innerHTML = txt;
+        if(res.errors && res.errors.length){
+          el.innerHTML += '<br><span style="color:var(--orange)">⚠ ' + res.errors.join('<br>⚠ ') + '</span>';
+        }
+        el.dataset.value = res.total;
+      } else {
+        el.textContent = 'อ่านไม่สำเร็จ: ' + (res.error||'ไม่ทราบสาเหตุ');
+        el.dataset.value = '';
+      }
+      recalcAll();
+    })
+    .catch(()=>{ el.textContent = 'เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง'; recalcAll(); });
+}
+
+// ---------- อ่านออเดอร์ไลน์แมนจากภาพ (Gemini OCR ผ่าน Code.gs) ----------
+function readLinemanImages(){
+  if(!linemanImages.length){ alert('กรุณาแนบภาพออเดอร์ก่อน'); return; }
+  const tbody = document.getElementById('linemanResultBody');
+  tbody.innerHTML = '<tr><td colspan="5" class="note">กำลังอ่านภาพ...</td></tr>';
+  fetch(API_URL, {
+    method:'POST',
+    body: JSON.stringify({
+      action:'readLinemanOrders',
+      images: linemanImages.map(i=>i.base64),
+      mimeTypes: linemanImages.map(i=>i.mimeType)
+    })
+  })
+    .then(r=>r.json())
+    .then(res=>{
+      linemanOcrRows = res.success ? res.orders : [];
+      renderLinemanResults();
+      recalcAll();
+    })
+    .catch(()=>{ tbody.innerHTML = '<tr><td colspan="5" class="note">เชื่อมต่อไม่สำเร็จ ลองใหม่อีกครั้ง</td></tr>'; });
+}
+
+function renderLinemanResults(){
+  const tbody = document.getElementById('linemanResultBody');
+  tbody.innerHTML = '';
+  linemanOcrRows.forEach((o, idx)=>{
+    const row = el('tr');
+    row.innerHTML = `
+      <td><input type="text" value="${o.order||''}" style="width:70px" data-idx="${idx}" data-f="order"></td>
+      <td><input type="number" min="0" value="${o.jumbo||0}" style="width:50px" data-idx="${idx}" data-f="jumbo"></td>
+      <td><input type="number" min="0" value="${o.large||0}" style="width:50px" data-idx="${idx}" data-f="large"></td>
+      <td><input type="number" min="0" value="${o.small||0}" style="width:50px" data-idx="${idx}" data-f="small"></td>
+      <td><input type="number" min="0" value="${o.soy||0}" style="width:50px" data-idx="${idx}" data-f="soy"></td>
+    `;
+    tbody.appendChild(row);
+  });
+  tbody.querySelectorAll('input').forEach(inp=>{
+    inp.addEventListener('input', function(){
+      const i = +this.dataset.idx, f = this.dataset.f;
+      linemanOcrRows[i][f] = f === 'order' ? this.value : (+this.value || 0);
+      recalcAll();
+    });
+  });
+  recalcAll();
+}
+
+// =====================================================================
+// จำข้อมูลค้างไว้อัตโนมัติ (Draft autosave) — เก็บในเบราว์เซอร์เครื่องนี้
+// พิมพ์ค้างแล้วหลุดออกจากหน้าจอ กลับมาเปิดใหม่จะถามว่าดึงกลับมาไหม
+// หมายเหตุ: ไม่เก็บภาพที่แนบไว้ (ไฟล์ใหญ่เกินไปสำหรับที่เก็บของเบราว์เซอร์)
+//           แนบภาพใหม่ได้ตามปกติถ้าเบราว์เซอร์ปิดไปก่อนกดบันทึก
+// =====================================================================
+const DRAFT_KEY = 'salesFormDraft_v1';
+const DRAFT_FIELD_IDS = [
+  'empCode','saleDate','substituteToggle','subBranchCode',
+  'timeOpen','timeClose','iceBags','sealOpen','sealClose',
+  'sealOpenReason','sealOpenReasonOther','sealDispatchReason','sealDispatchReasonOther',
+  'addonQty','addonPrice','expense','cutoff','overrideNote','transferManualTotal'
+];
+
+function snapshotFormState(){
+  const snap = { savedAt: new Date().toISOString(), fields:{}, cups:{}, cashQty:{} };
+
+  DRAFT_FIELD_IDS.forEach(id=>{
+    const elx = document.getElementById(id);
+    if(!elx) return;
+    snap.fields[id] = elx.type === 'checkbox' ? elx.checked : elx.value;
+  });
+
+  document.querySelectorAll('.cup-card').forEach(card=>{
+    const key = card.dataset.key;
+    const get = sel => { const e = card.querySelector(sel); return e ? e.value : ''; };
+    snap.cups[key] = {
+      base: get('.in-base'), extra: get('.in-extra'), transfer: get('.in-transfer'),
+      remaining: get('.in-remaining'), free: get('.in-free'), damaged: get('.in-damaged'), lineman: get('.in-lineman'),
+      carryReason: get('.carry-reason'), carryReasonOther: get('.carry-reason-other'),
+    };
+  });
+
+  document.querySelectorAll('#cashTable .cash-row').forEach(row=>{
+    snap.cashQty[row.dataset.val] = row.querySelector('.cash-qty').value;
+  });
+
+  return snap;
+}
+
+function saveDraft(){
+  try{
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(snapshotFormState()));
+    const el = document.getElementById('draftStatus');
+    if(el){
+      const t = new Date().toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      el.textContent = '💾 บันทึกฉบับร่างอัตโนมัติ ' + t + ' น.';
+    }
+  }
+  catch(err){ /* พื้นที่เก็บเต็ม หรือเบราว์เซอร์ไม่รองรับ — ข้ามไปเงียบๆ ไม่กระทบการกรอกฟอร์ม */ }
+}
+
+function clearDraft(){
+  try{ localStorage.removeItem(DRAFT_KEY); } catch(err){}
+}
+
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(err){ return null; }
+}
+
+function restoreFormState(snap){
+  Object.entries(snap.fields||{}).forEach(([id,val])=>{
+    const elx = document.getElementById(id);
+    if(!elx) return;
+    if(elx.type === 'checkbox'){ elx.checked = val; elx.dispatchEvent(new Event('change')); }
+    else { elx.value = val; }
+  });
+
+  Object.entries(snap.cups||{}).forEach(([key,vals])=>{
+    const card = document.querySelector(`.cup-card[data-key="${key}"]`);
+    if(!card) return;
+    const set = (sel,val)=>{ const e = card.querySelector(sel); if(e && val!==undefined && val!=='') e.value = val; };
+    set('.in-base', vals.base); set('.in-extra', vals.extra); set('.in-transfer', vals.transfer);
+    set('.in-remaining', vals.remaining); set('.in-free', vals.free); set('.in-damaged', vals.damaged); set('.in-lineman', vals.lineman);
+    set('.carry-reason', vals.carryReason); set('.carry-reason-other', vals.carryReasonOther);
+  });
+
+  document.querySelectorAll('#cashTable .cash-row').forEach(row=>{
+    const val = row.dataset.val;
+    if(snap.cashQty && snap.cashQty[val] !== undefined) row.querySelector('.cash-qty').value = snap.cashQty[val];
+  });
+
+  if(document.getElementById('substituteToggle').checked){
+    document.getElementById('subBox').classList.add('show');
+  }
+
+  recalcAll();
+  updateEmployee();
+}
+
+function tryRestoreDraft(){
+  const snap = loadDraft();
+  if(!snap) return;
+
+  const today = new Date().toISOString().slice(0,10);
+  if(snap.fields && snap.fields.saleDate && snap.fields.saleDate !== today){
+    // ข้อมูลค้างจากวันก่อน ไม่ควรดึงข้ามวันมาสับสน ล้างทิ้งเงียบๆ
+    clearDraft();
+    return;
+  }
+
+  const savedTime = snap.savedAt ? new Date(snap.savedAt).toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'}) : '';
+  if(confirm(`พบข้อมูลที่กรอกค้างไว้เมื่อ ${savedTime} น.\nต้องการดึงข้อมูลกลับมากรอกต่อหรือไม่?`)){
+    restoreFormState(snap);
+  } else {
+    clearDraft();
+  }
+}
+
+// บันทึกร่างทุกครั้งที่มีการกรอก/แก้ไขอะไรในฟอร์ม (event delegation รองรับแถวที่เพิ่มทีหลังด้วย)
+document.addEventListener('input', saveDraft);
+document.addEventListener('change', saveDraft);
+
+// ---------- MULTI UPLOAD ----------
+function handleMultiUpload(input, kind){
+  const files = Array.from(input.files || []);
+  files.forEach(file=>{
+    const reader = new FileReader();
+    reader.onload = e=>{
+      if(kind === 'transfer'){
+        addImageToGallery('transferImageGallery', transferImages, e.target.result);
+      } else {
+        addImageToGallery('linemanImageGallery', linemanImages, e.target.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+// ---------- EMPLOYEE LOOKUP ----------
+const empCodeInput = document.getElementById('empCode');
+const autofillBox = document.getElementById('autofillBox');
+empCodeInput.addEventListener('input', updateEmployee);
+document.getElementById('substituteToggle').addEventListener('change', function(){
+  document.getElementById('subBox').classList.toggle('show', this.checked);
+  document.getElementById('afBranchRow').style.display = this.checked ? 'none' : 'flex';
+  document.getElementById('afBranchCodeRow').style.display = this.checked ? 'none' : 'flex';
+  if(this.checked){
+    document.getElementById('subBranchNameRow').style.display = 'none';
+    document.getElementById('subBranchNameDisplay').textContent = '-';
+    const code = document.getElementById('subBranchCode').value.trim();
+    if(code) loadBranchCarryover(code);
+  } else {
+    document.getElementById('subBranchCode').value = '';
+    resolvedBranchName = '';
+    updateEmployee();
+  }
+});
+document.getElementById('subBranchCode').addEventListener('input', function(){
+  const raw = this.value.trim();
+  const matchByName = branchListCache.find(b => b.branch === raw);
+  if(matchByName){ this.value = matchByName.branchCode; }
+  if(document.getElementById('substituteToggle').checked && this.value.trim()){
+    loadBranchCarryover(this.value.trim());
+  }
+});
+document.getElementById('subBranchCode').addEventListener('change', function(){
+  const raw = this.value.trim();
+  const matchByName = branchListCache.find(b => b.branch === raw);
+  if(matchByName){ this.value = matchByName.branchCode; }
+  if(document.getElementById('substituteToggle').checked && this.value.trim()){
+    confirmBranchPopup(this.value.trim());
+  }
+});
+
+// ---------- BRANCH CONFIRMATION POPUP (กันกรอกรหัสสาขาผิดตอนขายแทน) ----------
+function confirmBranchPopup(branchCode){
+  const show = (branchName) => {
+    resolvedBranchName = branchName;
+    document.getElementById('branchConfirmName').textContent = branchName;
+    document.getElementById('branchConfirmModal').classList.add('show');
+    document.getElementById('subBranchNameDisplay').textContent = branchName;
+    document.getElementById('subBranchNameRow').style.display = 'flex';
+  };
+  fetch(`${API_URL}?action=lookupBranch&branchCode=${encodeURIComponent(branchCode)}`)
+    .then(r=>r.json())
+    .then(res=>{ if(res.found) show(res.branch); })
+    .catch(()=>{});
+}
+function rejectBranchConfirm(){
+  document.getElementById('branchConfirmModal').classList.remove('show');
+  const input = document.getElementById('subBranchCode');
+  input.value = '';
+  resolvedBranchName = '';
+  document.getElementById('subBranchNameRow').style.display = 'none';
+  document.getElementById('subBranchNameDisplay').textContent = '-';
+  input.focus();
+}
+function acceptBranchConfirm(){
+  document.getElementById('branchConfirmModal').classList.remove('show');
+}
+
+// ---------- ปุ่ม "เลือกสาขา" (ค้นหาจากชื่อสาขา แล้วได้รหัสกลับมาอัตโนมัติ) ----------
+let branchListCache = [];
+function loadBranchList(){
+  fetch(`${API_URL}?action=listBranches`)
+    .then(r=>r.json())
+    .then(res=>{
+      branchListCache = res.branches || [];
+      const dl = document.getElementById('branchDatalist');
+      if(dl) dl.innerHTML = branchListCache.map(b=>`<option value="${b.branch}" label="${b.branchCode}">`).join('');
+    })
+    .catch(()=>{});
+}
+function openBranchPicker(){
+  document.getElementById('branchPickerModal').classList.add('show');
+  const search = document.getElementById('branchPickerSearch');
+  search.value = '';
+  renderBranchPickerList('');
+  search.focus();
+}
+function closeBranchPicker(){
+  document.getElementById('branchPickerModal').classList.remove('show');
+}
+function renderBranchPickerList(filter){
+  const listEl = document.getElementById('branchPickerList');
+  const f = filter.trim().toLowerCase();
+  const filtered = branchListCache.filter(b =>
+    !f || (b.branch||'').toLowerCase().includes(f) || (b.branchCode||'').toLowerCase().includes(f)
+  );
+  listEl.innerHTML = filtered.length
+    ? filtered.map(b => `<div class="branch-pick-row" onclick="selectBranchFromPicker('${b.branchCode}')"><b>${b.branch}</b><span>${b.branchCode}</span></div>`).join('')
+    : '<div class="note" style="padding:10px;">ไม่พบสาขาที่ค้นหา</div>';
+}
+function selectBranchFromPicker(branchCode){
+  document.getElementById('subBranchCode').value = branchCode;
+  closeBranchPicker();
+  loadBranchCarryover(branchCode);
+  confirmBranchPopup(branchCode);
+}
+
+// ---------- ตัวเลือกเวลาแบบวงล้อ (แตะ/เลื่อนเพื่อเลือก) ----------
+let activeTimeTarget = null;
+
+function buildWheel(containerId, max){
+  const el = document.getElementById(containerId);
+  el.innerHTML = '';
+  const padTop = document.createElement('div'); padTop.style.height = '68px'; el.appendChild(padTop);
+  for(let i=0;i<max;i++){
+    const item = document.createElement('div');
+    item.className = 'wheel-item';
+    item.textContent = String(i).padStart(2,'0');
+    item.dataset.val = i;
+    el.appendChild(item);
+  }
+  const padBot = document.createElement('div'); padBot.style.height = '68px'; el.appendChild(padBot);
+}
+
+function scrollWheelTo(containerId, value){
+  const el = document.getElementById(containerId);
+  const item = el.children[value + 1]; // +1 เพราะมี padding div อยู่ก่อน
+  if(item) el.scrollTop = item.offsetTop - (el.clientHeight/2 - 22);
+}
+
+function openTimePicker(inputId, title){
+  activeTimeTarget = inputId;
+  document.getElementById('timePickerTitle').textContent = title;
+  buildWheel('wheelHour', 24);
+  buildWheel('wheelMinute', 60);
+
+  const current = document.getElementById(inputId).value || '08:00';
+  const parts = current.split(':');
+  const h = parseInt(parts[0]) || 0;
+  const m = parseInt(parts[1]) || 0;
+
+  document.getElementById('timePickerModal').classList.add('show');
+  requestAnimationFrame(()=>{
+    scrollWheelTo('wheelHour', h);
+    scrollWheelTo('wheelMinute', m);
+  });
+}
+
+function closeTimePicker(){
+  document.getElementById('timePickerModal').classList.remove('show');
+}
+
+function getWheelValue(containerId){
+  const el = document.getElementById(containerId);
+  const center = el.scrollTop + el.clientHeight/2;
+  let closest = null, closestDist = Infinity;
+  el.querySelectorAll('.wheel-item').forEach(item=>{
+    const dist = Math.abs((item.offsetTop + item.offsetHeight/2) - center);
+    if(dist < closestDist){ closestDist = dist; closest = item; }
+  });
+  return closest ? parseInt(closest.dataset.val) : 0;
+}
+
+function confirmTimePicker(){
+  const h = getWheelValue('wheelHour');
+  const m = getWheelValue('wheelMinute');
+  const val = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  const input = document.getElementById(activeTimeTarget);
+  input.value = val;
+  input.dispatchEvent(new Event('input', {bubbles:true}));
+  input.dispatchEvent(new Event('change', {bubbles:true}));
+  closeTimePicker();
+}
+
+function splitName(fullName){
+  if(!fullName) return { first:'-', last:'-' };
+  const parts = String(fullName).trim().split(/\s+/);
+  return { first: parts[0] || '-', last: parts.slice(1).join(' ') || '-' };
+}
+
+function resetAutofillBox(){
+  document.getElementById('afFirstName').textContent = '-';
+  document.getElementById('afLastName').textContent = '-';
+  document.getElementById('afNickname').textContent = '-';
+  document.getElementById('afBranch').textContent = '-';
+  document.getElementById('afBranchCode').textContent = '-';
+}
+
+function updateEmployee(){
+  const code = empCodeInput.value.trim();
+  if(!code){ resetAutofillBox(); return; }
+  const isSub = document.getElementById('substituteToggle').checked;
+
+  const apply = (emp) => {
+    if(emp && emp.found !== false){
+      const { first, last } = splitName(emp.name);
+      document.getElementById('afFirstName').textContent = first;
+      document.getElementById('afLastName').textContent = last;
+      document.getElementById('afNickname').textContent = emp.nickname || '-';
+      document.getElementById('afBranch').textContent = emp.branch;
+      document.getElementById('afBranchCode').textContent = emp.branchCode;
+      if(!isSub){ resolvedBranchName = emp.branch; loadBranchCarryover(emp.branchCode); }
+    } else {
+      resetAutofillBox();
+    }
+  };
+
+  fetch(`${API_URL}?action=lookupEmployee&code=${encodeURIComponent(code)}`)
+    .then(r=>r.json()).then(apply).catch(()=> resetAutofillBox());
+}
+
+// ---------- MAIN CALCULATION ----------
+function recalcAll(){
+  let cashRevenueTotal = 0;
+  let transferRevenueTotal = 0;
+  let totalSealDispatch = 0;
+  let linemanCountBySize = {};
+  const redIssues = [];
+  const orangeIssues = [];
+  cupTypes.forEach(c=> linemanCountBySize[c.key]=0);
+
+  document.querySelectorAll('.cup-card').forEach(card=>{
+    const key = card.dataset.key;
+    const type = card.dataset.type;
+    const cfg = cupTypes.find(c=>c.key===key);
+    const base = +card.querySelector('.in-base').value || 0;
+    const extra = +card.querySelector('.in-extra').value || 0;
+    const totalReceived = base + extra;
+    card.querySelector('.out-total-received').textContent = totalReceived;
+
+    const transfer = +card.querySelector('.in-transfer').value || 0;
+    const remaining = +card.querySelector('.in-remaining').value || 0;
+    const free = +card.querySelector('.in-free').value || 0;
+    const damaged = +card.querySelector('.in-damaged').value || 0;
+    const lineman = +card.querySelector('.in-lineman').value || 0;
+
+    const sold = totalReceived - transfer - free - damaged - lineman - remaining;
+    const cashRevenue = Math.max(sold,0) * cfg.price;
+    const transferRevenue = transfer * cfg.price;
+
+    cashRevenueTotal += cashRevenue;
+    transferRevenueTotal += transferRevenue;
+    if(cfg.sealed){
+      totalSealDispatch += Math.max(sold,0) + transfer + free + damaged + lineman;
+    }
+    linemanCountBySize[key] += lineman;
+
+    card.querySelector('.out-sold').textContent = sold;
+    card.querySelector('.out-revenue').textContent = cashRevenue.toFixed(2);
+    card.querySelector('.out-transfer-revenue').textContent = transferRevenue.toFixed(2);
+    card.querySelector('.out-total-revenue').textContent = (cashRevenue + transferRevenue).toFixed(2);
+    card.querySelector('.out-total-cups').textContent = (Math.max(sold,0) + transfer);
+
+    const isBalanced = sold >= 0;
+    card.querySelector('.warn-text').classList.toggle('show', !isBalanced);
+    if(!isBalanced) redIssues.push(`${cfg.label}: แก้วรับไม่พอกับยอดที่กรอก (คำนวณขายได้ ${sold} แก้ว)`);
+
+    const soldForCheck = Math.max(sold, 0);
+    const checksumEl = card.querySelector('.out-checksum-text');
+    const checksumMark = card.querySelector('.out-checksum-mark');
+    checksumEl.textContent = `เช็ค: รับรวม ${totalReceived} = โอน ${transfer}+คงเหลือ ${remaining}+ฟรี ${free}+เสีย ${damaged}+ไลน์แมน ${lineman}+ขายเงินสด ${soldForCheck}`;
+    checksumMark.textContent = isBalanced ? '✓' : '✗';
+    checksumMark.className = 'out-checksum-mark ' + (isBalanced ? 'ok' : 'bad');
+
+    if(type === 'carryover'){
+      const carryVal = +card.querySelector('.in-carry').value || 0;
+      if(carryVal !== expectedSoyCarry){
+        const reasonSel = card.querySelector('.carry-reason').value;
+        const reasonOther = card.querySelector('.carry-reason-other').value.trim();
+        const reasonFilled = reasonSel && (reasonSel !== 'other' || reasonOther);
+        if(!reasonFilled){
+          redIssues.push('น้ำเต้าหู้: ยอดยกมาไม่ตรงกับเมื่อวาน กรุณาระบุสาเหตุก่อนบันทึก');
+        } else {
+          orangeIssues.push(`น้ำเต้าหู้: ยอดยกมาไม่ตรงกับเมื่อวาน (คาด ${expectedSoyCarry} ได้ ${carryVal}) — สาเหตุ: ${reasonSel==='other'?reasonOther:reasonSel}`);
+        }
+      }
+    }
+  });
+
+  // addon
+  const addonQty = +document.getElementById('addonQty').value || 0;
+  const addonPrice = +document.getElementById('addonPrice').value || 0;
+  const addonTotal = addonQty * addonPrice;
+  document.getElementById('addonTotal').value = addonTotal.toFixed(2);
+
+  // ยอดโอน: เทียบ 3 ทาง — พนักงานกรอกเอง, อ่านจากภาพ (OCR), และคำนวณจากแก้วโอน
+  const transferManualTotal = +document.getElementById('transferManualTotal').value || 0;
+  document.getElementById('transferManualDisplay').textContent = transferManualTotal.toFixed(2) + ' บาท';
+  document.getElementById('transferFromCups').textContent = transferRevenueTotal.toFixed(2) + ' บาท';
+
+  const ocrEl = document.getElementById('transferOcrTotal');
+  const ocrValue = ocrEl.dataset.value !== undefined && ocrEl.dataset.value !== '' ? parseFloat(ocrEl.dataset.value) : null;
+
+  const transferMsgEl = document.getElementById('transferMismatchMsg');
+  const cupDiff = Math.abs(transferManualTotal - transferRevenueTotal);
+  const msgs = [];
+  if(!(transferManualTotal===0 && transferRevenueTotal===0) && cupDiff >= 0.5){
+    msgs.push(`ยอดที่กรอก (${transferManualTotal.toFixed(2)}) ไม่ตรงกับยอดโอนจากแก้ว (${transferRevenueTotal.toFixed(2)})`);
+  }
+  if(ocrValue !== null){
+    const ocrDiff = Math.abs(transferManualTotal - ocrValue);
+    if(ocrDiff >= 0.5){
+      msgs.push(`ยอดที่กรอก (${transferManualTotal.toFixed(2)}) ไม่ตรงกับยอดที่อ่านจากภาพ (${ocrValue.toFixed(2)})`);
+    }
+  }
+  if(msgs.length){
+    transferMsgEl.textContent = '⚠ ' + msgs.join(' / ');
+    transferMsgEl.classList.add('show');
+    orangeIssues.push(...msgs);
+  } else {
+    transferMsgEl.classList.remove('show');
+  }
+
+  // lineman cross check: รวมจากผลอ่านภาพ (OCR) เทียบกับที่กรอกไว้ในการ์ดแก้ว
+  let linemanOcrBySize = { jumbo:0, large:0, small:0, soy:0 };
+  linemanOcrRows.forEach(o=>{
+    linemanOcrBySize.jumbo += (+o.jumbo||0);
+    linemanOcrBySize.large += (+o.large||0);
+    linemanOcrBySize.small += (+o.small||0);
+    linemanOcrBySize.soy   += (+o.soy||0);
+  });
+  document.getElementById('linemanOcrSummary').textContent = linemanOcrRows.length
+    ? `จัมโบ้ ${linemanOcrBySize.jumbo} / ใหญ่ ${linemanOcrBySize.large} / เล็ก ${linemanOcrBySize.small} / น้ำเต้าหู้ ${linemanOcrBySize.soy} แก้ว (${linemanOcrRows.length} ออเดอร์)`
+    : 'ยังไม่ได้อ่าน';
+
+  let linemanMsg = [];
+  cupTypes.forEach(c=>{
+    const declared = linemanCountBySize[c.key];
+    const fromImages = linemanOcrBySize[c.key] || 0;
+    if(declared>0 || fromImages>0){
+      const match = declared === fromImages;
+      linemanMsg.push(`${c.label}: กรอกในการ์ดแก้ว ${declared} แก้ว / อ่านจากภาพ ${fromImages} แก้ว ${match?'✓':'⚠ ไม่ตรงกัน'}`);
+      if(!match) orangeIssues.push(`ไลน์แมน ${c.label}: กรอกไว้ ${declared} แก้ว แต่อ่านจากภาพได้ ${fromImages} แก้ว`);
+    }
+  });
+  document.getElementById('linemanCheck').innerHTML = linemanMsg.length ? linemanMsg.join('<br>') : 'ยังไม่มีข้อมูลไลน์แมนให้ตรวจสอบ';
+
+  // cash count
+  let cashSum = 0;
+  document.querySelectorAll('#cashTable .cash-row').forEach(row=>{
+    const val = +row.dataset.val;
+    const qty = +row.querySelector('.cash-qty').value || 0;
+    const sub = val*qty;
+    row.querySelector('.cash-sub').textContent = `x${val} = ${sub.toLocaleString()}`;
+    cashSum += sub;
+  });
+  document.getElementById('cashTotal').textContent = cashSum.toFixed(2) + ' บาท';
+
+  // summary
+  // รวมแก้วขาย = แก้วโอน + แก้วขาย (คิดเงินจากทั้งสองส่วนรวมกัน) แล้วหักยอดโอนออกทีหลัง
+  // ยอดโอนที่ใช้หัก มาจากแก้วโอน (จัมโบ้+ใหญ่+เล็ก+น้ำเต้าหู้) x ราคา โดยตรง ไม่ใช่ยอดรวมจากตารางสลิป
+  // (ตารางสลิปใช้เป็นหลักฐานเทียบยอดเท่านั้น ไม่ใช่ตัวเลขที่ใช้คำนวณเงินจริง)
+  const totalSales = cashRevenueTotal + transferRevenueTotal + addonTotal;
+  const expense = +document.getElementById('expense').value || 0;
+  const cutoff = +document.getElementById('cutoff').value || 0;
+  const remain = totalSales - expense - transferRevenueTotal - cutoff;
+
+  document.getElementById('sumSales').textContent = totalSales.toFixed(2);
+  document.getElementById('sumTransfer').textContent = transferRevenueTotal.toFixed(2);
+  document.getElementById('sumRemain').textContent = remain.toFixed(2) + ' บาท';
+  document.getElementById('footerAmt').textContent = remain.toFixed(2) + ' บาท';
+
+  // cash match
+  const cashDiff = Math.abs(remain - cashSum);
+  const cashStatusEl = document.getElementById('cashMatchStatus');
+  if(remain===0 && cashSum===0){ cashStatusEl.innerHTML=''; }
+  else if(cashDiff < 0.5){
+    cashStatusEl.innerHTML = `<div class="status-pill status-ok"><span class="dot"></span>เงินสดที่นับได้ตรงกับยอดที่ต้องนำส่ง</div>`;
+  } else {
+    orangeIssues.push(`เงินสดที่นับได้ (${cashSum.toFixed(2)}) ไม่ตรงกับยอดที่ต้องนำส่ง (${remain.toFixed(2)})`);
+    cashStatusEl.innerHTML = `<div class="status-pill status-orange"><span class="dot"></span>เงินสดไม่ตรง ต่างกัน ${cashDiff.toFixed(2)} บาท</div>`;
+  }
+
+  // seal open reason check (required if mismatched, else just informational, not a hard block)
+  const sealOpenVal = +document.getElementById('sealOpen').value || 0;
+  if(sealOpenVal !== expectedSealOpen){
+    const reasonSel = document.getElementById('sealOpenReason').value;
+    const reasonOther = document.getElementById('sealOpenReasonOther').value.trim();
+    const reasonFilled = reasonSel && (reasonSel !== 'other' || reasonOther);
+    if(!reasonFilled){
+      redIssues.push('เครื่องซีล: เลขเปิดไม่ตรงกับเมื่อวาน กรุณาระบุสาเหตุก่อนบันทึก');
+    }
+  }
+
+  // seal dispatch check (close-open vs total dispatched) -> orange, ต้องระบุสาเหตุ
+  const sealOpen = +document.getElementById('sealOpen').value || 0;
+  const sealClose = +document.getElementById('sealClose').value || 0;
+  const sealReading = sealClose - sealOpen;
+  document.getElementById('sealDiffDisplay').textContent = sealReading;
+  document.getElementById('sealDispatchDisplay').textContent = totalSealDispatch;
+
+  const sealStatusEl = document.getElementById('sealDispatchStatus');
+  const sealMismatchBox = document.getElementById('sealDispatchMismatchBox');
+  if(sealOpen===0 && sealClose===0){
+    sealStatusEl.innerHTML='';
+    sealMismatchBox.classList.remove('show');
+  } else if(sealReading === totalSealDispatch){
+    sealStatusEl.innerHTML = `<div class="status-pill status-ok"><span class="dot"></span>เลขเครื่องซีล (ปิด-เปิด = ${sealReading}) ตรงกับยอดแก้วที่จ่ายออกทั้งหมด</div>`;
+    sealMismatchBox.classList.remove('show');
+  } else {
+    sealMismatchBox.classList.add('show');
+    const reasonSel = document.getElementById('sealDispatchReason').value;
+    const reasonOther = document.getElementById('sealDispatchReasonOther').value.trim();
+    const reasonFilled = reasonSel && (reasonSel !== 'other' || reasonOther);
+    if(reasonFilled){
+      orangeIssues.push(`เครื่องซีลปิด-เปิด (${sealReading}) ไม่ตรงกับยอดแก้วที่จ่ายออก (${totalSealDispatch}) — สาเหตุ: ${reasonSel==='other'?reasonOther:reasonSel}`);
+    } else {
+      redIssues.push('เครื่องซีล: ผลต่างไม่ตรงกับยอดแก้วที่จ่ายออก กรุณาระบุสาเหตุก่อนบันทึก');
+    }
+    sealStatusEl.innerHTML = `<div class="status-pill status-orange"><span class="dot"></span>เลขเครื่องซีลไม่ตรง! เครื่องนับได้ ${sealReading} แก้ว แต่รวมแก้วที่จ่ายออก = ${totalSealDispatch} แก้ว</div>`;
+  }
+
+  // red balance status block
+  const redStatusEl = document.getElementById('redBalanceStatus');
+  const overridePanel = document.getElementById('overridePanel');
+  if(redIssues.length){
+    redStatusEl.innerHTML = `<div class="status-pill status-red"><span class="dot"></span>บันทึกปกติไม่ได้ พบ ${redIssues.length} รายการที่ต้องแก้ไข (หรือขออนุมัติส่งด้านล่าง):<ul>${redIssues.map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
+    overridePanel.style.display = 'block';
+  } else {
+    redStatusEl.innerHTML = '';
+    overridePanel.style.display = 'none';
+  }
+
+  // footer flag + save button state
+  const saveBtn = document.getElementById('saveBtn');
+  const footerFlag = document.getElementById('footerFlag');
+  if(redIssues.length){
+    saveBtn.disabled = true;
+    footerFlag.textContent = `ติดแดง ${redIssues.length} รายการ — ดูช่องขออนุมัติด้านล่าง`;
+    footerFlag.className = 'footer-flag red';
+  } else if(orangeIssues.length){
+    saveBtn.disabled = false;
+    footerFlag.textContent = `ติดส้ม ${orangeIssues.length} รายการ — บันทึกได้ (รอตรวจสอบ)`;
+    footerFlag.className = 'footer-flag orange';
+  } else {
+    saveBtn.disabled = false;
+    footerFlag.textContent = 'ยอดตรงทุกจุด — พร้อมบันทึก';
+    footerFlag.className = 'footer-flag ok';
+  }
+
+  window.__orangeIssues = orangeIssues;
+  window.__redIssues = redIssues;
+}
+
+['addonQty','addonPrice','expense','cutoff','sealClose'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', recalcAll);
+});
+
+function collectFormData(){
+  const cups = {};
+  document.querySelectorAll('.cup-card').forEach(card=>{
+    const key = card.dataset.key;
+    cups[key] = {
+      base: +card.querySelector('.in-base').value || 0,
+      extra: +card.querySelector('.in-extra').value || 0,
+      transfer: +card.querySelector('.in-transfer').value || 0,
+      remaining: +card.querySelector('.in-remaining').value || 0,
+      free: +card.querySelector('.in-free').value || 0,
+      damaged: +card.querySelector('.in-damaged').value || 0,
+      lineman: +card.querySelector('.in-lineman').value || 0,
+      sold: +card.querySelector('.out-sold').textContent || 0,
+      cashRevenue: +card.querySelector('.out-revenue').textContent || 0,
+    };
+  });
+
+  return {
+    empCode: empCodeInput.value.trim(),
+    empFirstName: document.getElementById('afFirstName').textContent,
+    empLastName: document.getElementById('afLastName').textContent,
+    empNickname: document.getElementById('afNickname').textContent,
+    isSubstitute: document.getElementById('substituteToggle').checked,
+    branchCode: resolvedBranchCode,
+    branchName: resolvedBranchName,
+    saleDate: document.getElementById('saleDate').value,
+    timeOpen: document.getElementById('timeOpen').value,
+    timeClose: document.getElementById('timeClose').value,
+    iceBags: document.getElementById('iceBags').value,
+    sealOpen: document.getElementById('sealOpen').value,
+    sealClose: document.getElementById('sealClose').value,
+    cups: JSON.stringify(cups),
+    addonQty: document.getElementById('addonQty').value,
+    addonTotal: document.getElementById('addonTotal').value,
+    transferManualTotal: document.getElementById('transferManualTotal').value,
+    transferOcrTotal: document.getElementById('transferOcrTotal').dataset.value || '',
+    transferFromCups: document.getElementById('transferFromCups').textContent,
+    linemanOcrRows: JSON.stringify(linemanOcrRows),
+    linemanOcrSummary: document.getElementById('linemanOcrSummary').textContent,
+    cashTotal: document.getElementById('cashTotal').textContent,
+    expense: document.getElementById('expense').value,
+    cutoff: document.getElementById('cutoff').value,
+    sumSales: document.getElementById('sumSales').textContent,
+    sumRemain: document.getElementById('sumRemain').textContent,
+    flagStatus: window.__redIssues.length ? 'red' : (window.__orangeIssues.length ? 'orange' : 'ok'),
+    flagReasons: window.__orangeIssues.join(' | '),
+  };
+}
+
+function postSaleData(data){
+  const toast = document.getElementById('toast');
+  toast.textContent = 'กำลังบันทึก...';
+  toast.classList.add('show');
+  fetch(API_URL, { method:'POST', body: JSON.stringify({action:'saveSale', data}) })
+    .then(r=>r.json())
+    .then(res=>{
+      toast.textContent = res.success ? (res.message || 'บันทึกรายการสำเร็จ') : 'เกิดข้อผิดพลาด: '+(res.error||'');
+      setTimeout(()=>toast.classList.remove('show'), 3000);
+      if(res.success){ fetchCommissionStatus(); clearDraft(); }
+    })
+    .catch(()=>{
+      toast.textContent = 'บันทึกไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต';
+      setTimeout(()=>toast.classList.remove('show'), 3000);
+    });
+}
+
+function checkExistingThenSave(data){
+  fetch(`${API_URL}?action=checkExisting&branchCode=${encodeURIComponent(data.branchCode)}&saleDate=${encodeURIComponent(data.saleDate)}`)
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.exists){
+        if(confirm(`มีการบันทึกของสาขานี้ในวันที่นี้อยู่แล้ว (เมื่อ ${res.submittedAt||'-'})\nระบบจะไม่ลบของเดิม แต่จะเพิ่มเป็นอีกรายการ ยืนยันบันทึกซ้ำหรือไม่?`)){
+          postSaleData(data);
+        }
+      } else {
+        postSaleData(data);
+      }
+    })
+    .catch(()=> postSaleData(data));
+}
+
+function saveForm(){
+  recalcAll();
+  if(window.__redIssues.length){
+    alert('บันทึกปกติไม่ได้ — กรุณาแก้ไขให้ตรง หรือใช้ช่อง "ขออนุมัติส่งข้อมูล" ด้านล่างสุด');
+    return;
+  }
+
+  const data = collectFormData();
+
+  if(data.flagStatus === 'orange'){
+    if(confirm('พบข้อมูลติดสถานะสีส้ม ' + window.__orangeIssues.length + ' รายการ ระบบจะแจ้งเข้ากลุ่มไลน์ให้ตรวจสอบ ยืนยันบันทึกหรือไม่?')){
+      checkExistingThenSave(data);
+    }
+  } else {
+    checkExistingThenSave(data);
+  }
+}
+
+function submitOverride(){
+  recalcAll();
+  const note = document.getElementById('overrideNote').value.trim();
+  if(!note){
+    alert('กรุณาระบุหมายเหตุ/สาเหตุของปัญหาก่อนขออนุมัติส่งข้อมูล');
+    return;
+  }
+  const data = collectFormData();
+  data.flagStatus = 'red_override';
+  data.overrideNote = note;
+  data.flagReasons = window.__redIssues.join(' | ');
+  checkExistingThenSave(data);
+}
+
+// ---------- สถานะค่าคอมมิชชั่นวันนี้ (ข้อความเท่านั้น ไม่มีตัวเลข) ----------
+function fetchCommissionStatus(){
+  const saleDate = document.getElementById('saleDate').value;
+  if(!saleDate) return;
+  fetch(`${API_URL}?action=getCommissionStatus&saleDate=${encodeURIComponent(saleDate)}`)
+    .then(r=>r.json())
+    .then(res=>{
+      const banner = document.getElementById('commissionBanner');
+      banner.style.display = 'block';
+      banner.textContent = res.message;
+      banner.className = 'commission-banner' + (res.message && res.message.indexOf('ยินดีด้วย')===0 ? ' gold' : '');
+    })
+    .catch(()=>{});
+}
+
+function printForm(){
+  recalcAll();
+  window.print();
+}
+
+function exportCSV(){
+  recalcAll();
+  const data = collectFormData();
+  const cups = JSON.parse(data.cups);
+
+  const rows = [
+    ['ใบรายการขาย - Export'],
+    ['วันที่', data.saleDate],
+    ['รหัสสาขา', data.branchCode],
+    ['รหัสพนักงาน', data.empCode],
+    ['ขายแทน', data.isSubstitute ? 'ใช่' : 'ไม่ใช่'],
+    ['เวลาเปิด-ปิด', `${data.timeOpen||''} - ${data.timeClose||''}`],
+    ['น้ำแข็ง(กระสอบ)', data.iceBags],
+    ['เครื่องซีลเปิด', data.sealOpen],
+    ['เครื่องซีลปิด', data.sealClose],
+    [],
+    ['ชนิดแก้ว','ตั้งต้น','รับเพิ่ม','โอน','ฟรี','เสีย','ไลน์แมน','คงเหลือ','ขาย(เงินสด)','รายได้เงินสด'],
+  ];
+
+  const cupLabels = { jumbo:'แก้วจัมโบ้', large:'แก้วใหญ่', small:'แก้วเล็ก', soy:'น้ำเต้าหู้' };
+  Object.keys(cups).forEach(key=>{
+    const c = cups[key];
+    rows.push([cupLabels[key]||key, c.base, c.extra, c.transfer, c.free, c.damaged, c.lineman, c.remaining, c.sold, c.cashRevenue]);
+  });
+
+  rows.push([]);
+  rows.push(['เงินเพิ่มไข่มุก/วุ้น', data.addonTotal]);
+  rows.push(['ยอดโอนเข้าบริษัท', data.transferTotal]);
+  rows.push(['เงินสดที่นับได้จริง', data.cashTotal]);
+  rows.push(['ค่าใช้จ่าย', data.expense]);
+  rows.push(['ยอดตัดยอด', data.cutoff]);
+  rows.push(['ยอดขายรวม', data.sumSales]);
+  rows.push(['คงเหลือที่ต้องนำส่ง', data.sumRemain]);
+  rows.push(['สถานะ', data.flagStatus]);
+  rows.push(['หมายเหตุสถานะ', data.flagReasons]);
+
+  const csvContent = rows.map(r => r.map(cell => {
+    const s = String(cell ?? '');
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+  }).join(',')).join('\n');
+
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ใบรายการขาย_${data.branchCode||'สาขา'}_${data.saleDate||''}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// initial default date = today
+document.getElementById('saleDate').value = new Date().toISOString().slice(0,10);
+document.getElementById('saleDate').addEventListener('change', fetchCommissionStatus);
+
+wrapAllNumberInputs(); // แก้วรับ/โอน/ฟรี/เสีย/ไลน์แมน/คงเหลือ, นับเงินสด, น้ำแข็ง, ไข่มุก/วุ้น, เครื่องซีล, ค่าใช้จ่าย, ตัดยอด ฯลฯ
+
+loadBranchList();
+document.getElementById('branchPickerSearch').addEventListener('input', function(){
+  renderBranchPickerList(this.value);
+});
+
+recalcAll();
+fetchCommissionStatus();
+// ---------- เชื่อมกับระบบ Login (ถ้ามาจาก dashboard.html) ----------
+(function autoFillFromSession(){
+  try{
+    const raw = localStorage.getItem('staffSession') || sessionStorage.getItem('staffSession');
+    if(!raw) return;
+    const session = JSON.parse(raw);
+    if(session && session.empCode){
+      document.getElementById('backToMenu').style.display = 'inline-block';
+      empCodeInput.value = session.empCode;
+      document.getElementById('empCodeField').style.display = 'none';
+      document.getElementById('afEmpCodeRow').style.display = 'flex';
+      document.getElementById('afEmpCode').textContent = session.empCode;
+      updateEmployee();
+    }
+  }catch(e){}
+})();
+
+tryRestoreDraft();
+
+// ---------- PWA: ลงทะเบียน Service Worker ----------
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
+// --- ส่วนเสริม: ฟังก์ชันดึงข้อมูลพนักงาน (เชื่อมต่อ Apps Script พี่เจต) ---
 document.getElementById('empCode').addEventListener('input', function() {
-    const code = this.value;
-    if (code.length < 3) return; // หรือตามความยาวรหัสพนักงานจริง
+    const code = this.value.trim();
+    if (code.length < 3) return; // เริ่มค้นหาเมื่อพิมพ์ 3 ตัวขึ้นไป
 
-    fetch(`${API_URL}?action=getEmployee&empCode=${code}`)
+    // ใช้ API_URL ที่พี่ประกาศไว้ด้านบนสุดของไฟล์
+    fetch(`${API_URL}?action=getEmployee&empCode=${encodeURIComponent(code)}`)
         .then(res => res.json())
         .then(result => {
             if (result.status === 'success') {
+                // อัปเดตข้อมูลพนักงานเข้าช่อง HTML เดิมของพี่
                 document.getElementById('afFirstName').innerText = result.data.name;
-                document.getElementById('afLastName').innerText = result.data.lastname || "";
+                document.getElementById('afLastName').innerText = result.data.lastname || "-";
                 document.getElementById('afNickname').innerText = result.data.nickname;
                 document.getElementById('afBranch').innerText = result.data.branchName;
                 document.getElementById('afBranchCode').innerText = result.data.branchCode;
+                
+                // แสดงแถวรหัสพนักงาน
                 document.getElementById('afEmpCodeRow').style.display = 'flex';
                 document.getElementById('afEmpCode').innerText = code;
-                showToast("ดึงข้อมูลพนักงานเรียบร้อย");
+                
+                // เก็บค่า branchCode ไว้ใช้ในฟังก์ชันอื่นๆ ของพี่ (เช่น ค้นหาน้ำเต้าหู้)
+                resolvedBranchCode = result.data.branchCode;
+                
+                showToast("ดึงข้อมูลพนักงานสำเร็จ!");
             } else {
-                showToast("ไม่พบข้อมูลพนักงาน");
+                showToast("ไม่พบรหัสพนักงานนี้");
             }
+        })
+        .catch(err => {
+            console.error("Fetch Error:", err);
+            showToast("เกิดข้อผิดพลาดในการดึงข้อมูล");
         });
 });
 
+// ฟังก์ชัน Toast แจ้งเตือนสั้นๆ (ถ้าพี่เจตยังไม่มี)
 function showToast(msg) {
     const t = document.getElementById('toast');
     t.innerText = msg;
     t.classList.add('show');
     setTimeout(() => t.classList.remove('show'), 2000);
 }
-
-// ... ใส่ JavaScript ส่วนที่เหลือของพี่เจตต่อจากตรงนี้ได้เลยค่ะ ...
-</script>
-</body>
-</html>
