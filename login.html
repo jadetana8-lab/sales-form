@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>เข้าสู่ระบบ - ระบบพนักงาน</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D5FA8">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ระบบพนักงาน">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+  :root{
+    --teal:#1D5FA8; --teal-dark:#123A66; --teal-soft:#DCEAFB;
+    --paper:#EEF5FC; --ink:#1B2B29; --muted:#7A756A; --line:#DDD6C7;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Noto Sans Thai',sans-serif; background:var(--teal); min-height:100vh; }
+
+  /* ---------- Splash ---------- */
+  #splash{
+    position:fixed; inset:0; background:var(--teal);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    z-index:20; transition:opacity .4s ease;
+  }
+  #splash img{ width:96px; height:96px; border-radius:24px; box-shadow:0 8px 24px rgba(0,0,0,.2); }
+  #splash h1{ color:#fff; font-family:'Kanit',sans-serif; font-size:20px; margin:16px 0 4px; }
+  #splash p{ color:#CFE0F5; font-size:12.5px; margin:0; }
+  .spinner{
+    margin-top:26px; width:26px; height:26px; border-radius:50%;
+    border:3px solid rgba(255,255,255,.3); border-top-color:#fff;
+    animation:spin 0.9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  #splash.hide{ opacity:0; pointer-events:none; }
+
+  /* ---------- Login ---------- */
+  .wrap{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:32px 24px; text-align:center;
+  }
+  .logo-box{ width:88px; height:88px; border-radius:22px; margin-bottom:18px; box-shadow:0 8px 24px rgba(0,0,0,.15); }
+  .wrap h2{ color:#fff; font-family:'Kanit',sans-serif; font-size:19px; margin:0 0 26px; }
+  .card{
+    background:#fff; border-radius:18px; padding:24px 22px; width:100%; max-width:340px;
+    box-shadow:0 10px 30px rgba(0,0,0,.15); text-align:left;
+  }
+  .card label{ font-size:12.5px; color:var(--muted); display:block; margin-bottom:6px; }
+  .card input[type=text]{
+    width:100%; border:1.5px solid var(--line); border-radius:10px; padding:12px 14px;
+    font-size:15px; font-family:'Noto Sans Thai',sans-serif; margin-bottom:14px;
+  }
+  .card input:focus{ outline:none; border-color:var(--teal); }
+  .remember{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted); margin-bottom:18px; }
+  .remember input{ width:auto; }
+  .login-btn{
+    width:100%; background:var(--teal); color:#fff; border:none; border-radius:12px;
+    padding:13px; font-family:'Noto Sans Thai',sans-serif; font-weight:700; font-size:15px; cursor:pointer;
+  }
+  .login-btn:disabled{ background:#B9C7DA; }
+  .err-msg{ color:#B3382C; font-size:12.5px; margin-top:10px; text-align:center; display:none; }
+  .err-msg.show{ display:block; }
+  .foot-link{ text-align:center; margin-top:18px; font-size:12px; color:#DCEAFB; }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <img src="icon-192.png" alt="logo">
+  <h1>ระบบพนักงาน</h1>
+  <p>ใช้งานง่าย รวดเร็ว เชื่อถือได้</p>
+  <div class="spinner"></div>
+</div>
+
+<div class="wrap">
+  <img class="logo-box" src="icon-192.png" alt="logo">
+  <h2>เข้าสู่ระบบ</h2>
+  <p style="opacity:.5; font-size:10px; margin:-18px 0 18px;">v5-login-debug-2026-07-14</p>
+  <div class="card">
+    <label>รหัสพนักงาน</label>
+    <input type="text" id="empCode" placeholder="เช่น 0001" inputmode="numeric" autocomplete="off">
+    <label class="remember"><input type="checkbox" id="rememberDevice" checked> จดจำอุปกรณ์นี้</label>
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">เข้าสู่ระบบ</button>
+    <div class="err-msg" id="errMsg"></div>
+  </div>
+  <div class="foot-link">ลืมรหัสพนักงาน? ติดต่อหัวหน้าสาย/แอดมิน</div>
+</div>
+
+<script>
+const SESSION_KEY = 'staffSession';
+
+function getSession(){
+  try{
+    return JSON.parse(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || 'null');
+  }catch(e){ return null; }
+}
+
+// ถ้าล็อกอินค้างอยู่แล้ว (จดจำอุปกรณ์นี้ไว้) ข้ามหน้า login ไปที่ dashboard เลย
+const existing = getSession();
+if(existing){
+  window.location.href = 'dashboard.html';
+} else {
+  setTimeout(()=>{ document.getElementById('splash').classList.add('hide'); }, 700);
+}
+
+function doLogin(){
+  const code = document.getElementById('empCode').value.trim();
+  const errEl = document.getElementById('errMsg');
+  errEl.classList.remove('show');
+  if(!code){ errEl.textContent = 'กรุณากรอกรหัสพนักงาน'; errEl.classList.add('show'); return; }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ...';
+
+  fetch(`${API_URL}?action=lookupEmployee&code=${encodeURIComponent(code)}`)
+    .then(r=>{
+      if(!r.ok) throw new Error('HTTP ' + r.status + ' ' + r.statusText);
+      return r.json();
+    })
+    .then(res=>{
+      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+      if(res.found){
+        const session = {
+          empCode: res.empCode, name: res.name, nickname: res.nickname,
+          branch: res.branch, branchCode: res.branchCode, loginAt: new Date().toISOString()
+        };
+        const remember = document.getElementById('rememberDevice').checked;
+        const store = remember ? localStorage : sessionStorage;
+        store.setItem(SESSION_KEY, JSON.stringify(session));
+        window.location.href = 'dashboard.html';
+      } else {
+        errEl.textContent = 'ไม่พบรหัสพนักงานนี้ กรุณาตรวจสอบอีกครั้ง';
+        errEl.classList.add('show');
+      }
+    })
+    .catch(err=>{
+      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+      errEl.innerHTML = 'เชื่อมต่อระบบไม่สำเร็จ: <br><span style="font-size:11px;">' + (err && err.message ? err.message : String(err)) + '</span>';
+      errEl.classList.add('show');
+    });
+}
+
+document.getElementById('empCode').addEventListener('keydown', e=>{
+  if(e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>

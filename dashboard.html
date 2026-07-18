@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>หน้าแรก - ระบบพนักงาน</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D5FA8">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+  :root{
+    --teal:#1D5FA8; --teal-dark:#123A66; --teal-soft:#DCEAFB;
+    --paper:#EEF5FC; --ink:#1B2B29; --muted:#7A756A; --line:#DDD6C7;
+    --orange:#C97A1B; --orange-soft:#FBEBD4;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Noto Sans Thai',sans-serif; background:var(--paper); color:var(--ink); padding-bottom:82px; }
+
+  .topbar{ background:var(--teal); padding:20px 18px 46px; border-radius:0 0 24px 24px; }
+  .topbar-row{ display:flex; justify-content:space-between; align-items:center; }
+  .topbar h1{ color:#fff; font-family:'Kanit',sans-serif; font-size:18px; margin:0; }
+  .logout-link{ color:#CFE0F5; font-size:12px; text-decoration:none; cursor:pointer; }
+
+  .wrap{ max-width:520px; margin:0 auto; padding:0 16px; }
+
+  .profile-card{
+    background:#fff; border-radius:16px; padding:16px; margin-top:-32px;
+    box-shadow:0 6px 20px rgba(20,30,25,.08); display:flex; align-items:center; gap:14px;
+  }
+  .avatar{
+    width:52px; height:52px; border-radius:50%; background:var(--teal-soft); color:var(--teal-dark);
+    display:flex; align-items:center; justify-content:center; font-family:'Kanit',sans-serif; font-size:20px; font-weight:700; flex:none;
+  }
+  .profile-name{ font-family:'Kanit',sans-serif; font-size:15.5px; color:var(--ink); }
+  .profile-sub{ font-size:12px; color:var(--muted); margin-top:2px; }
+
+  .section-title{ font-size:12.5px; color:var(--muted); margin:22px 4px 10px; font-weight:600; }
+
+  .menu-list{ display:flex; flex-direction:column; gap:10px; }
+  .menu-item{
+    display:flex; align-items:center; gap:14px; background:#fff; border-radius:14px; padding:14px 16px;
+    text-decoration:none; color:var(--ink); box-shadow:0 1px 3px rgba(20,30,25,.06); position:relative;
+  }
+  .menu-item.disabled{ opacity:.55; pointer-events:auto; cursor:default; }
+  .menu-icon{
+    width:42px; height:42px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; flex:none;
+  }
+  .menu-text b{ display:block; font-size:14.5px; }
+  .menu-text span{ display:block; font-size:11.5px; color:var(--muted); margin-top:1px; }
+  .soon-badge{
+    position:absolute; right:14px; top:50%; transform:translateY(-50%);
+    background:var(--orange-soft); color:var(--orange); font-size:10.5px; font-weight:700;
+    padding:3px 8px; border-radius:20px;
+  }
+  .chev{ margin-left:auto; color:var(--line); font-size:16px; }
+
+  .bottom-nav{
+    position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line);
+    display:flex; padding:8px 0 12px; z-index:10;
+  }
+  .nav-item{
+    flex:1; display:flex; flex-direction:column; align-items:center; gap:3px; text-decoration:none;
+    color:var(--muted); font-size:10.5px; cursor:pointer; background:none; border:none; font-family:'Noto Sans Thai',sans-serif;
+  }
+  .nav-item.active{ color:var(--teal); font-weight:700; }
+  .nav-icon{ font-size:19px; }
+
+  .toast{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    background:var(--teal-dark); color:#fff; padding:10px 18px; border-radius:30px;
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:85%; text-align:center;
+  }
+  .toast.show{ opacity:1; }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <div class="topbar-row">
+    <h1>หน้าแรก</h1>
+    <span class="logout-link" onclick="logout()">ออกจากระบบ</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="profile-card">
+    <div class="avatar" id="avatarInitial">-</div>
+    <div>
+      <div class="profile-name" id="profileName">-</div>
+      <div class="profile-sub" id="profileBranch">-</div>
+    </div>
+  </div>
+
+  <div class="section-title">เมนูหลัก</div>
+  <div class="menu-list">
+    <a href="sales_form_v2.html" class="menu-item">
+      <div class="menu-icon" style="background:#DFF3E7;">🧾</div>
+      <div class="menu-text"><b>ใบรายการขาย</b><span>บันทึกยอดขายประจำวัน</span></div>
+      <span class="chev">›</span>
+    </a>
+    <div class="menu-item disabled" onclick="comingSoon()">
+      <div class="menu-icon" style="background:var(--teal-soft);">🥤</div>
+      <div class="menu-text"><b>ตรวจนับแก้ว</b><span>สำหรับแผนกแก้ว</span></div>
+      <span class="soon-badge">เร็วๆ นี้</span>
+    </div>
+    <div class="menu-item disabled" onclick="comingSoon()">
+      <div class="menu-icon" style="background:#FBEBD4;">📊</div>
+      <div class="menu-text"><b>รายงานยอดขาย</b><span>ดูสรุปยอดย้อนหลัง</span></div>
+      <span class="soon-badge">เร็วๆ นี้</span>
+    </div>
+    <div class="menu-item disabled" onclick="comingSoon()">
+      <div class="menu-icon" style="background:#F3E6FB;">📰</div>
+      <div class="menu-text"><b>ข่าวสาร</b><span>ประกาศและข่าวสาร</span></div>
+      <span class="soon-badge">เร็วๆ นี้</span>
+    </div>
+    <div class="menu-item disabled" onclick="comingSoon()">
+      <div class="menu-icon" style="background:#EDEDED;">⚙️</div>
+      <div class="menu-text"><b>ตั้งค่า</b><span>ตั้งค่าทั่วไป</span></div>
+      <span class="soon-badge">เร็วๆ นี้</span>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-nav">
+  <button class="nav-item active"><span class="nav-icon">🏠</span>หน้าแรก</button>
+  <a href="sales_form_v2.html" class="nav-item"><span class="nav-icon">🧾</span>ใบขาย</a>
+  <button class="nav-item" onclick="comingSoon()"><span class="nav-icon">📤</span>อัปโหลด</button>
+  <button class="nav-item" onclick="comingSoon()"><span class="nav-icon">📊</span>รายงาน</button>
+  <button class="nav-item" onclick="comingSoon()"><span class="nav-icon">⚙️</span>ตั้งค่า</button>
+</div>
+
+<script>
+const SESSION_KEY = 'staffSession';
+
+function getSession(){
+  try{
+    return JSON.parse(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || 'null');
+  }catch(e){ return null; }
+}
+
+const session = getSession();
+if(!session){
+  window.location.href = 'login.html';
+} else {
+  document.getElementById('profileName').textContent = session.name + (session.nickname ? ' (' + session.nickname + ')' : '');
+  document.getElementById('profileBranch').textContent = session.branch || '-';
+  document.getElementById('avatarInitial').textContent = (session.nickname || session.name || '-').charAt(0);
+}
+
+function logout(){
+  if(confirm('ต้องการออกจากระบบหรือไม่?')){
+    localStorage.removeItem(SESSION_KEY);
+    sessionStorage.removeItem(SESSION_KEY);
+    window.location.href = 'login.html';
+  }
+}
+
+function comingSoon(){
+  const toast = document.getElementById('toast');
+  toast.textContent = 'เมนูนี้กำลังพัฒนา เปิดใช้งานเร็วๆ นี้';
+  toast.classList.add('show');
+  setTimeout(()=>toast.classList.remove('show'), 2000);
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
