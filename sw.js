@@ -4,7 +4,7 @@
 // service worker นี้ไม่ยุ่งกับคำขอไปหา API เลย ปล่อยให้วิ่งตรงเสมอ
 // ===================================================================
 
-const CACHE_NAME = 'sales-form-cache-v2';
+const CACHE_NAME = 'sales-form-cache-v3';
 const APP_SHELL = [
   './login.html',
   './dashboard.html',
