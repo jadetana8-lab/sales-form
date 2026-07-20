@@ -97,7 +97,13 @@
   .sub-box.show{ display:block; }
 
   .cup-card{ border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px; background:#FCFBF8; }
-  .cup-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .cup-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; cursor:pointer; user-select:none; flex-wrap:wrap; gap:6px; }
+  .cup-summary-badge{ font-size:11.5px; color:var(--teal-dark); background:var(--teal-soft); padding:2px 8px; border-radius:20px; }
+  .cup-summary-badge b{ font-family:'Kanit',sans-serif; }
+  .cup-chevron{ font-size:14px; color:var(--muted); transition:transform .2s; flex:none; }
+  .cup-card.open .cup-chevron{ transform:rotate(180deg); }
+  .cup-body{ overflow:hidden; max-height:2000px; transition:max-height .25s ease, opacity .2s ease; opacity:1; }
+  .cup-body.collapsed{ max-height:0; opacity:0; }
   .cup-head .name{ font-weight:700; font-size:14px; }
   .cup-head .tag{ font-size:10.5px; padding:2px 8px; border-radius:20px; font-weight:600; }
   .tag-reset{ background:var(--teal-soft); color:var(--teal-dark); }
@@ -195,6 +201,16 @@
   .override-btn{ margin-top:8px; width:100%; background:var(--red); color:#fff; border:none; border-radius:10px; padding:10px; font-weight:700; font-size:13.5px; cursor:pointer; }
   .commission-banner{ margin-top:10px; padding:14px; border-radius:12px; text-align:center; font-family:'Kanit',sans-serif; font-size:15px; font-weight:600; background:var(--teal-soft); color:var(--teal-dark); }
   .commission-banner.gold{ background:#FFF3D6; color:#8A6116; }
+
+  .overview-table{ display:flex; flex-direction:column; gap:2px; margin-bottom:8px; }
+  .overview-row{ display:flex; justify-content:space-between; padding:5px 0; font-size:13px; border-bottom:1px dashed var(--line); }
+  .overview-row .qty{ color:var(--muted); font-size:11.5px; margin-left:6px; }
+  .overview-line{ display:flex; justify-content:space-between; padding:6px 0; font-size:13.5px; border-bottom:1px dashed var(--line); }
+  .overview-line:last-child{ border-bottom:none; }
+  .overview-line.total-bold{ font-size:16px; padding-top:10px; }
+  .overview-line.total-bold b{ font-family:'Kanit',sans-serif; font-weight:700; color:var(--teal-dark); }
+  .match-ok{ color:var(--green); font-family:'Kanit',sans-serif; }
+  .match-bad{ color:var(--red); font-family:'Kanit',sans-serif; }
   .icon-btn{
     background:var(--teal-soft); color:var(--teal-dark); border:none;
     width:38px;height:38px; border-radius:10px; font-size:16px; cursor:pointer;
@@ -235,26 +251,33 @@
   .modal-btn.no{ background:var(--red-soft); color:var(--red); }
   .modal-btn.yes{ background:var(--teal); color:#fff; }
 
-  .wheel-wrap{ position:relative; display:flex; justify-content:center; align-items:center; height:180px; gap:8px; }
-  .wheel-highlight{
-    position:absolute; left:8%; right:8%; top:50%; transform:translateY(-50%);
-    height:44px; background:var(--teal-soft); border-radius:10px; z-index:0; pointer-events:none;
+  .clock-display{
+    text-align:center; font-family:'Kanit',sans-serif; font-size:32px; color:var(--teal-dark);
+    margin-bottom:16px; display:flex; align-items:center; justify-content:center; gap:2px;
   }
-  .wheel-col{
-    position:relative; z-index:1; height:180px; width:70px; overflow-y:scroll;
-    scroll-snap-type:y mandatory; -webkit-overflow-scrolling:touch; text-align:center;
-    scrollbar-width:none;
+  .clock-time-part{ cursor:pointer; padding:2px 8px; border-radius:8px; }
+  .clock-time-part.active{ background:var(--teal-soft); }
+  .clock-ampm-toggle{ display:flex; flex-direction:column; margin-left:12px; }
+  .ampm-btn{
+    border:1px solid var(--line); background:#fff; padding:2px 10px; font-size:11px; cursor:pointer;
+    font-family:'Noto Sans Thai',sans-serif; color:var(--muted);
   }
-  .wheel-col::-webkit-scrollbar{ display:none; }
-  .wheel-item{
-    height:44px; line-height:44px; scroll-snap-align:center; font-size:20px;
-    font-family:'Kanit',sans-serif; color:var(--muted);
+  .ampm-btn.active{ background:var(--teal); color:#fff; border-color:var(--teal); }
+  .ampm-btn:first-child{ border-radius:6px 6px 0 0; }
+  .ampm-btn:last-child{ border-radius:0 0 6px 6px; border-top:none; }
+
+  .clock-face{ position:relative; width:210px; height:210px; border-radius:50%; background:var(--teal-soft); margin:0 auto; }
+  .clock-center{ position:absolute; left:50%; top:50%; width:8px; height:8px; background:var(--teal); border-radius:50%; transform:translate(-50%,-50%); z-index:3; }
+  .clock-hand{
+    position:absolute; left:50%; top:50%; width:2px; height:78px; background:var(--teal);
+    transform-origin:top center; transform:translate(-50%,0) rotate(0deg); z-index:1; border-radius:2px;
   }
-  .wheel-sep{ font-size:22px; font-weight:700; color:var(--teal-dark); z-index:1; }
-  .time-display{
-    text-align:center; font-family:'Kanit',sans-serif; font-size:28px; color:var(--teal-dark);
-    margin-bottom:6px;
+  .clock-num{
+    position:absolute; width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    transform:translate(-50%,-50%); font-size:13px; font-weight:600; color:var(--teal-dark); cursor:pointer; z-index:2;
+    background:transparent; font-family:'Noto Sans Thai',sans-serif;
   }
+  .clock-num.selected{ background:var(--teal); color:#fff; }
   .branch-pick-list{ max-height:300px; overflow-y:auto; margin-top:8px; border-top:1px solid var(--line); }
   .branch-pick-row{ display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid var(--line); cursor:pointer; }
   .branch-pick-row:active{ background:var(--teal-soft); }
@@ -267,15 +290,20 @@
 <div class="toast" id="toast"></div>
 
 <div class="modal-overlay" id="timePickerModal">
-  <div class="modal-box" style="max-width:280px;">
-    <div class="q" style="margin-bottom:6px; font-weight:700;" id="timePickerTitle">เลือกเวลา</div>
-    <div class="wheel-wrap">
-      <div class="wheel-highlight"></div>
-      <div class="wheel-col" id="wheelHour"></div>
-      <div class="wheel-sep">:</div>
-      <div class="wheel-col" id="wheelMinute"></div>
+  <div class="modal-box" style="max-width:300px;">
+    <div class="q" style="margin-bottom:10px; font-weight:700;" id="timePickerTitle">เลือกเวลา</div>
+    <div class="clock-display">
+      <span id="clockHourDisplay" class="clock-time-part active" onclick="clockSetMode('hour')">08</span>:<span id="clockMinuteDisplay" class="clock-time-part" onclick="clockSetMode('minute')">00</span>
+      <span class="clock-ampm-toggle">
+        <button type="button" id="clockAmBtn" class="ampm-btn active" onclick="clockSetAmPm(0)">AM</button>
+        <button type="button" id="clockPmBtn" class="ampm-btn" onclick="clockSetAmPm(1)">PM</button>
+      </span>
     </div>
-    <div class="modal-btn-row" style="margin-top:10px;">
+    <div class="clock-face" id="clockFace">
+      <div class="clock-hand" id="clockHand"></div>
+      <div class="clock-center"></div>
+    </div>
+    <div class="modal-btn-row" style="margin-top:14px;">
       <button class="modal-btn no" onclick="closeTimePicker()">ยกเลิก</button>
       <button class="modal-btn yes" onclick="confirmTimePicker()">ยืนยัน</button>
     </div>
@@ -460,11 +488,17 @@
     <div class="result-line"><span>รวมเงินสดที่นับได้จริง</span><b id="cashTotal">0.00 บาท</b></div>
   </div>
 
-  <!-- 7. สรุปเงิน + สถานะ -->
+  <!-- 7. ตัดยอด -->
   <div class="card">
-    <h2><span class="num">7</span>สรุปยอด &amp; สถานะตรวจสอบ</h2>
+    <h2><span class="num">7</span>ยอดตัดยอด</h2>
+    <div class="field"><label>หัก ยอดตัดยอด</label><input id="cutoff" type="number" min="0" value="0" data-step="100"></div>
+  </div>
+
+  <!-- 8. สรุปเงิน + สถานะ -->
+  <div class="card">
+    <h2><span class="num">8</span>สรุปยอด &amp; สถานะตรวจสอบ</h2>
     <div class="summary-line"><span>ยอดขายรวม (เงินสด+โอน+ไข่มุก/วุ้น)</span><b id="sumSales">0.00</b></div>
-    <div class="summary-line"><span>หัก ยอดตัดยอด</span><input id="cutoff" type="number" min="0" value="0" data-step="100"></div>
+    <div class="summary-line"><span>หัก ยอดตัดยอด</span><b id="sumCutoffDisplay">0.00</b></div>
     <div class="summary-line"><span>หัก ค่าใช้จ่าย</span><input id="expense" type="number" min="0" value="0"></div>
     <div class="summary-line"><span>หัก ยอดโอนเข้าบริษัท (อัตโนมัติจากแก้วโอน)</span><b id="sumTransfer">0.00</b></div>
     <div class="summary-line total"><span>คงเหลือที่ต้องนำส่ง</span><b id="sumRemain">0.00 บาท</b></div>
@@ -481,6 +515,15 @@
     </div>
 
     <div id="commissionBanner" class="commission-banner" style="display:none;"></div>
+  </div>
+
+  <!-- 9. ภาพรวมสรุป (ดูอย่างเดียว แก้ไขไม่ได้) -->
+  <div class="card">
+    <h2><span class="num">9</span>ภาพรวมสรุป (ดูอย่างเดียว)</h2>
+    <div class="overview-table" id="overviewTable"></div>
+    <div class="overview-line total-bold"><span>คงเหลือส่งบริษัท</span><b id="ovRemain">0.00 บาท</b></div>
+    <div class="overview-line"><span>รวมรายการแจงแบงค์</span><b id="ovCash">0.00 บาท</b></div>
+    <div class="overview-line"><span>คงเหลือส่งบริษัท เทียบรายการแจงแบงค์</span><b id="ovMatchLabel" class="match-ok">ตรง</b></div>
   </div>
 
 </div>
@@ -605,11 +648,14 @@ cupTypes.forEach(c=>{
        </div>`;
 
   card.innerHTML = `
-    <div class="cup-head">
+    <div class="cup-head" onclick="toggleCupCard(this)">
       <span class="name">${c.label}</span>
       <span class="tag ${c.type==='reset'?'tag-reset':'tag-carry'}">${c.type==='reset' ? 'ตั้งต้นใหม่ทุกวัน' : 'ยกยอดจากเมื่อวาน'}</span>
       <span class="price">฿${c.price} / แก้ว</span>
+      <span class="cup-summary-badge">ขาย <b class="badge-sold">0</b> แก้ว</span>
+      <span class="cup-chevron">▾</span>
     </div>
+    <div class="cup-body collapsed">
     ${receivedRowHtml}
     <div class="field" style="margin-bottom:8px;"><label>โอน (จ่ายผ่านโอน)</label><input type="number" min="0" value="0" class="in-transfer"></div>
     <div class="result-line" style="margin-top:0; padding-top:0; border-top:none;">
@@ -629,9 +675,11 @@ cupTypes.forEach(c=>{
     </div>
     <div class="checksum-row"><span class="out-checksum-text">เช็ค: รับรวม 0 = โอน 0+คงเหลือ 0+ฟรี 0+เสีย 0+ไลน์แมน 0+ขายเงินสด 0</span> <b class="out-checksum-mark">✓</b></div>
     <div class="warn-text">⚠ ยอดไม่สมดุล (แก้วรับ ไม่พอกับ โอน+ขาย+ฟรี/เสีย/ไลน์แมน+คงเหลือ) — ติดสถานะแดง ห้ามส่งข้อมูล</div>
+    </div>
   `;
   cupContainer.appendChild(card);
-  card.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', recalcAll));
+  card.querySelectorAll('input').forEach(inp=>inp.addEventListener('input', e => { recalcAll(); e.stopPropagation(); }));
+  card.querySelectorAll('input,select').forEach(inp=>inp.addEventListener('click', e => e.stopPropagation()));
 
   if(c.type === 'carryover'){
     const carryInput = card.querySelector('.in-carry');
@@ -1050,66 +1098,115 @@ function selectBranchFromPicker(branchCode){
   confirmBranchPopup(branchCode);
 }
 
-// ---------- ตัวเลือกเวลาแบบวงล้อ (แตะ/เลื่อนเพื่อเลือก) ----------
+// ---------- ตัวเลือกเวลาแบบวงกลม (นาฬิกา แตะเลือกชั่วโมง/นาที) ----------
 let activeTimeTarget = null;
-
-function buildWheel(containerId, max){
-  const el = document.getElementById(containerId);
-  el.innerHTML = '';
-  const padTop = document.createElement('div'); padTop.style.height = '68px'; el.appendChild(padTop);
-  for(let i=0;i<max;i++){
-    const item = document.createElement('div');
-    item.className = 'wheel-item';
-    item.textContent = String(i).padStart(2,'0');
-    item.dataset.val = i;
-    el.appendChild(item);
-  }
-  const padBot = document.createElement('div'); padBot.style.height = '68px'; el.appendChild(padBot);
-}
-
-function scrollWheelTo(containerId, value){
-  const el = document.getElementById(containerId);
-  const item = el.children[value + 1]; // +1 เพราะมี padding div อยู่ก่อน
-  if(item) el.scrollTop = item.offsetTop - (el.clientHeight/2 - 22);
-}
+let clockMode = 'hour'; // 'hour' | 'minute'
+let clockHour24 = 8;
+let clockMinute = 0;
 
 function openTimePicker(inputId, title){
   activeTimeTarget = inputId;
   document.getElementById('timePickerTitle').textContent = title;
-  buildWheel('wheelHour', 24);
-  buildWheel('wheelMinute', 60);
 
   const current = document.getElementById(inputId).value || '08:00';
   const parts = current.split(':');
-  const h = parseInt(parts[0]) || 0;
-  const m = parseInt(parts[1]) || 0;
+  clockHour24 = parseInt(parts[0]) || 0;
+  clockMinute = parseInt(parts[1]) || 0;
+  clockMode = 'hour';
 
+  renderClock();
   document.getElementById('timePickerModal').classList.add('show');
-  requestAnimationFrame(()=>{
-    scrollWheelTo('wheelHour', h);
-    scrollWheelTo('wheelMinute', m);
-  });
 }
 
 function closeTimePicker(){
   document.getElementById('timePickerModal').classList.remove('show');
 }
 
-function getWheelValue(containerId){
-  const el = document.getElementById(containerId);
-  const center = el.scrollTop + el.clientHeight/2;
-  let closest = null, closestDist = Infinity;
-  el.querySelectorAll('.wheel-item').forEach(item=>{
-    const dist = Math.abs((item.offsetTop + item.offsetHeight/2) - center);
-    if(dist < closestDist){ closestDist = dist; closest = item; }
-  });
-  return closest ? parseInt(closest.dataset.val) : 0;
+function clockSetMode(mode){
+  clockMode = mode;
+  renderClock();
+}
+
+function clockSetAmPm(pm){
+  const h12 = clockHour24 % 12;
+  clockHour24 = pm ? (h12 + 12) : h12;
+  renderClock();
+}
+
+function renderClock(){
+  document.getElementById('clockHourDisplay').textContent = String(clockHour24).padStart(2,'0');
+  document.getElementById('clockMinuteDisplay').textContent = String(clockMinute).padStart(2,'0');
+  document.getElementById('clockHourDisplay').classList.toggle('active', clockMode==='hour');
+  document.getElementById('clockMinuteDisplay').classList.toggle('active', clockMode==='minute');
+
+  const isPm = clockHour24 >= 12;
+  document.getElementById('clockAmBtn').classList.toggle('active', !isPm);
+  document.getElementById('clockPmBtn').classList.toggle('active', isPm);
+
+  buildClockFace();
+}
+
+function buildClockFace(){
+  const face = document.getElementById('clockFace');
+  face.querySelectorAll('.clock-num').forEach(n=>n.remove());
+
+  const radius = 88;
+  const center = 105;
+
+  if(clockMode === 'hour'){
+    for(let i=1;i<=12;i++){
+      const angle = (i % 12) * 30 - 90;
+      const rad = angle * Math.PI/180;
+      const x = center + radius*Math.cos(rad);
+      const y = center + radius*Math.sin(rad);
+      const btn = el('div',{class:'clock-num'});
+      btn.style.left = x + 'px';
+      btn.style.top = y + 'px';
+      btn.textContent = i;
+      const thisHour24 = (clockHour24 >= 12 ? (i%12)+12 : i%12);
+      if(thisHour24 === clockHour24) btn.classList.add('selected');
+      btn.onclick = ()=>{
+        let hourVal = i % 12;
+        if(clockHour24 >= 12) hourVal += 12;
+        clockHour24 = hourVal;
+        clockMode = 'minute';
+        renderClock();
+      };
+      face.appendChild(btn);
+    }
+  } else {
+    for(let i=0;i<12;i++){
+      const m = i*5;
+      const angle = i*30 - 90;
+      const rad = angle*Math.PI/180;
+      const x = center + radius*Math.cos(rad);
+      const y = center + radius*Math.sin(rad);
+      const btn = el('div',{class:'clock-num'});
+      btn.style.left = x + 'px';
+      btn.style.top = y + 'px';
+      btn.textContent = String(m).padStart(2,'0');
+      if(m === clockMinute) btn.classList.add('selected');
+      btn.onclick = ()=>{
+        clockMinute = m;
+        renderClock();
+      };
+      face.appendChild(btn);
+    }
+  }
+
+  const hand = document.getElementById('clockHand');
+  let angleDeg;
+  if(clockMode === 'hour'){
+    const h12 = clockHour24 % 12 || 12;
+    angleDeg = (h12 % 12) * 30;
+  } else {
+    angleDeg = (clockMinute/5) * 30;
+  }
+  hand.style.transform = `translate(-50%,0) rotate(${angleDeg}deg)`;
 }
 
 function confirmTimePicker(){
-  const h = getWheelValue('wheelHour');
-  const m = getWheelValue('wheelMinute');
-  const val = String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0');
+  const val = String(clockHour24).padStart(2,'0') + ':' + String(clockMinute).padStart(2,'0');
   const input = document.getElementById(activeTimeTarget);
   input.value = val;
   input.dispatchEvent(new Event('input', {bubbles:true}));
@@ -1155,6 +1252,19 @@ function updateEmployee(){
 }
 
 // ---------- MAIN CALCULATION ----------
+function toggleCupCard(headerEl){
+  const card = headerEl.closest('.cup-card');
+  const body = card.querySelector('.cup-body');
+  const isCollapsed = body.classList.contains('collapsed');
+  if(isCollapsed){
+    body.classList.remove('collapsed');
+    card.classList.add('open');
+  } else {
+    body.classList.add('collapsed');
+    card.classList.remove('open');
+  }
+}
+
 function recalcAll(){
   let cashRevenueTotal = 0;
   let transferRevenueTotal = 0;
@@ -1162,6 +1272,7 @@ function recalcAll(){
   let linemanCountBySize = {};
   const redIssues = [];
   const orangeIssues = [];
+  const cupOverviewRows = [];
   cupTypes.forEach(c=> linemanCountBySize[c.key]=0);
 
   document.querySelectorAll('.cup-card').forEach(card=>{
@@ -1195,6 +1306,8 @@ function recalcAll(){
     card.querySelector('.out-transfer-revenue').textContent = transferRevenue.toFixed(2);
     card.querySelector('.out-total-revenue').textContent = (cashRevenue + transferRevenue).toFixed(2);
     card.querySelector('.out-total-cups').textContent = (Math.max(sold,0) + transfer);
+    card.querySelector('.badge-sold').textContent = (Math.max(sold,0) + transfer);
+    cupOverviewRows.push({ label: cfg.label, qty: Math.max(sold,0) + transfer, price: cfg.price, amount: cashRevenue + transferRevenue });
 
     const isBalanced = sold >= 0;
     card.querySelector('.warn-text').classList.toggle('show', !isBalanced);
@@ -1301,9 +1414,30 @@ function recalcAll(){
   const remain = totalSales - expense - transferRevenueTotal - cutoff;
 
   document.getElementById('sumSales').textContent = totalSales.toFixed(2);
+  document.getElementById('sumCutoffDisplay').textContent = cutoff.toFixed(2);
   document.getElementById('sumTransfer').textContent = transferRevenueTotal.toFixed(2);
   document.getElementById('sumRemain').textContent = remain.toFixed(2) + ' บาท';
   document.getElementById('footerAmt').textContent = remain.toFixed(2) + ' บาท';
+
+  // ---------- ภาพรวมสรุป (ดูอย่างเดียว) ----------
+  const ovTable = document.getElementById('overviewTable');
+  ovTable.innerHTML = cupOverviewRows.map(r =>
+    `<div class="overview-row"><span>${r.label} <span class="qty">${r.qty} x ${r.price}</span></span><b>${r.amount.toFixed(2)} บาท</b></div>`
+  ).join('') +
+    `<div class="overview-row"><span>เพิ่มวุ้น/ไข่มุก</span><b>${addonTotal.toFixed(2)} บาท</b></div>` +
+    `<div class="overview-row" style="font-weight:700;"><span>รวมเงินขายทั้งหมด</span><b>${totalSales.toFixed(2)} บาท</b></div>` +
+    `<div class="overview-row"><span>ค่าใช้จ่าย (เงินโอน)</span><b>${transferRevenueTotal.toFixed(2)} บาท</b></div>` +
+    `<div class="overview-row"><span>ค่าใช้จ่ายอื่นๆ (ระบุ)</span><b>${expense.toFixed(2)} บาท</b></div>` +
+    `<div class="overview-row"><span>ตัดยอด</span><b>${cutoff.toFixed(2)} บาท</b></div>`;
+
+  document.getElementById('ovRemain').textContent = remain.toFixed(2) + ' บาท';
+  document.getElementById('ovCash').textContent = cashSum.toFixed(2) + ' บาท';
+  const ovMatchEl = document.getElementById('ovMatchLabel');
+  if(Math.abs(remain - cashSum) < 0.5){
+    ovMatchEl.textContent = 'ตรง'; ovMatchEl.className = 'match-ok';
+  } else {
+    ovMatchEl.textContent = 'ไม่ตรง'; ovMatchEl.className = 'match-bad';
+  }
 
   // cash match
   const cashDiff = Math.abs(remain - cashSum);
