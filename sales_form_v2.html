@@ -18,6 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
   :root{
     --ink:#1B2B29;
@@ -178,6 +179,25 @@
   .status-ok{ background:var(--green-soft); color:var(--green); }
   .status-orange{ background:var(--orange-soft); color:var(--orange); }
   .status-red{ background:var(--red-soft); color:var(--red); }
+  .hard-block-banner{
+    background:var(--red); color:#fff; text-align:center; font-weight:800;
+    font-size:17px; line-height:1.5; padding:16px; border-radius:12px; margin-top:8px;
+    box-shadow:0 4px 14px rgba(179,56,44,.35);
+  }
+
+  body.pdf-export-mode .footer-bar,
+  body.pdf-export-mode .multi-upload,
+  body.pdf-export-mode .toast,
+  body.pdf-export-mode .btn-add,
+  body.pdf-export-mode .del-btn,
+  body.pdf-export-mode .step-btn,
+  body.pdf-export-mode .cup-chevron,
+  body.pdf-export-mode .thumb-del,
+  body.pdf-export-mode .modal-overlay{ display:none !important; }
+  body.pdf-export-mode .topbar{ background:#fff !important; color:#000 !important; box-shadow:none; }
+  body.pdf-export-mode .back-pill{ display:none !important; }
+  body.pdf-export-mode input, body.pdf-export-mode select{ border:1px solid #999 !important; background:#fff !important; color:#000 !important; }
+  body.pdf-export-mode .cup-head{ cursor:default; }
   .dot{ width:8px;height:8px;border-radius:50%; background:currentColor; margin-top:5px; flex:none; }
   .status-pill ul{ margin:2px 0 0; padding-left:16px; font-weight:500; }
 
@@ -366,7 +386,7 @@
       <div class="field">
         <label>รหัสสาขาที่ไปขายแทน</label>
         <div style="display:flex; gap:6px;">
-          <input id="subBranchCode" list="branchDatalist" placeholder="พิมพ์รหัสหรือชื่อสาขา" style="flex:1;">
+          <input id="subBranchCode" list="branchDatalist" placeholder="เช่น 007 หรือชื่อสาขา" style="flex:1;">
           <datalist id="branchDatalist"></datalist>
           <button type="button" class="icon-btn" onclick="openBranchPicker()" title="เลือกสาขาจากรายชื่อ">🔍</button>
         </div>
@@ -539,6 +559,7 @@
       </div>
       <div style="display:flex; gap:6px; align-items:center;">
         <button class="icon-btn" onclick="printForm()" title="พิมพ์">🖨️</button>
+        <button class="icon-btn" onclick="exportPDF()" title="ดาวน์โหลด PDF">📄</button>
         <button class="icon-btn" onclick="exportCSV()" title="Export CSV">⬇️</button>
         <button class="save-btn" id="saveBtn" onclick="saveForm()">บันทึกรายการ</button>
       </div>
@@ -558,6 +579,7 @@ const cupTypes = [
 
 let expectedSoyCarry = 0;
 let expectedSealOpen = 0;
+let branchHasHistory = false;
 let resolvedBranchCode = '';
 let resolvedBranchName = '';
 
@@ -702,6 +724,11 @@ document.getElementById('sealOpenReasonOther').addEventListener('input', recalcA
 
 function checkCarryMismatch(card){
   const box = card.querySelector('[data-role="carry-mismatch"]');
+  if(!branchHasHistory){
+    box.classList.remove('show');
+    recalcAll();
+    return;
+  }
   const val = +card.querySelector('.in-carry').value || 0;
   const mismatch = val !== expectedSoyCarry;
   box.classList.toggle('show', mismatch);
@@ -711,6 +738,11 @@ function checkCarryMismatch(card){
 
 function checkSealOpenMismatch(){
   const box = document.getElementById('sealOpenMismatchBox');
+  if(!branchHasHistory){
+    box.classList.remove('show');
+    recalcAll();
+    return;
+  }
   const val = +document.getElementById('sealOpen').value || 0;
   const mismatch = val !== expectedSealOpen;
   box.classList.toggle('show', mismatch);
@@ -721,9 +753,10 @@ function checkSealOpenMismatch(){
 // ---------- BRANCH CARRYOVER LOADING ----------
 function loadBranchCarryover(branchCode){
   resolvedBranchCode = branchCode || '';
-  const applyData = (soyRemaining, sealClose) => {
+  const applyData = (soyRemaining, sealClose, found) => {
     expectedSoyCarry = soyRemaining || 0;
     expectedSealOpen = sealClose || 0;
+    branchHasHistory = !!found;
     const soyCard = document.querySelector('.cup-card[data-key="soy"]');
     soyCard.querySelector('.in-carry').value = expectedSoyCarry;
     document.getElementById('sealOpen').value = expectedSealOpen;
@@ -733,8 +766,8 @@ function loadBranchCarryover(branchCode){
 
   fetch(`${API_URL}?action=getCarryover&branchCode=${encodeURIComponent(branchCode)}`)
     .then(r=>r.json())
-    .then(res=> applyData(res.soyRemaining, res.sealClose))
-    .catch(()=> applyData(0,0));
+    .then(res=> applyData(res.soyRemaining, res.sealClose, res.found))
+    .catch(()=> applyData(0,0,false));
 }
 
 // ---------- CASH COUNT ----------
@@ -1026,7 +1059,11 @@ document.getElementById('subBranchCode').addEventListener('input', function(){
 document.getElementById('subBranchCode').addEventListener('change', function(){
   const raw = this.value.trim();
   const matchByName = branchListCache.find(b => b.branch === raw);
-  if(matchByName){ this.value = matchByName.branchCode; }
+  if(matchByName){
+    this.value = matchByName.branchCode;
+  } else if(/^\d+$/.test(raw) && raw.length < 3){
+    this.value = raw.padStart(3, '0');
+  }
   if(document.getElementById('substituteToggle').checked && this.value.trim()){
     confirmBranchPopup(this.value.trim());
   }
@@ -1034,16 +1071,16 @@ document.getElementById('subBranchCode').addEventListener('change', function(){
 
 // ---------- BRANCH CONFIRMATION POPUP (กันกรอกรหัสสาขาผิดตอนขายแทน) ----------
 function confirmBranchPopup(branchCode){
-  const show = (branchName) => {
+  const show = (branchName, code) => {
     resolvedBranchName = branchName;
-    document.getElementById('branchConfirmName').textContent = branchName;
+    document.getElementById('branchConfirmName').textContent = code + ' - ' + branchName;
     document.getElementById('branchConfirmModal').classList.add('show');
-    document.getElementById('subBranchNameDisplay').textContent = branchName;
+    document.getElementById('subBranchNameDisplay').textContent = code + ' - ' + branchName;
     document.getElementById('subBranchNameRow').style.display = 'flex';
   };
   fetch(`${API_URL}?action=lookupBranch&branchCode=${encodeURIComponent(branchCode)}`)
     .then(r=>r.json())
-    .then(res=>{ if(res.found) show(res.branch); })
+    .then(res=>{ if(res.found) show(res.branch, res.branchCode); })
     .catch(()=>{});
 }
 function rejectBranchConfirm(){
@@ -1272,6 +1309,7 @@ function recalcAll(){
   let linemanCountBySize = {};
   const redIssues = [];
   const orangeIssues = [];
+  const hardBlockIssues = [];
   const cupOverviewRows = [];
   cupTypes.forEach(c=> linemanCountBySize[c.key]=0);
 
@@ -1320,7 +1358,7 @@ function recalcAll(){
     checksumMark.textContent = isBalanced ? '✓' : '✗';
     checksumMark.className = 'out-checksum-mark ' + (isBalanced ? 'ok' : 'bad');
 
-    if(type === 'carryover'){
+    if(type === 'carryover' && branchHasHistory){
       const carryVal = +card.querySelector('.in-carry').value || 0;
       if(carryVal !== expectedSoyCarry){
         const reasonSel = card.querySelector('.carry-reason').value;
@@ -1439,20 +1477,20 @@ function recalcAll(){
     ovMatchEl.textContent = 'ไม่ตรง'; ovMatchEl.className = 'match-bad';
   }
 
-  // cash match
+  // cash match — เข้มที่สุดในระบบ ห้ามส่งได้ ไม่มีทางขออนุมัติ ต้องแก้ให้ตรงเท่านั้น
   const cashDiff = Math.abs(remain - cashSum);
   const cashStatusEl = document.getElementById('cashMatchStatus');
   if(remain===0 && cashSum===0){ cashStatusEl.innerHTML=''; }
   else if(cashDiff < 0.5){
     cashStatusEl.innerHTML = `<div class="status-pill status-ok"><span class="dot"></span>เงินสดที่นับได้ตรงกับยอดที่ต้องนำส่ง</div>`;
   } else {
-    orangeIssues.push(`เงินสดที่นับได้ (${cashSum.toFixed(2)}) ไม่ตรงกับยอดที่ต้องนำส่ง (${remain.toFixed(2)})`);
-    cashStatusEl.innerHTML = `<div class="status-pill status-orange"><span class="dot"></span>เงินสดไม่ตรง ต่างกัน ${cashDiff.toFixed(2)} บาท</div>`;
+    hardBlockIssues.push(`เงินสดที่นับได้ (${cashSum.toFixed(2)}) ไม่ตรงกับยอดที่ต้องนำส่ง (${remain.toFixed(2)}) ต่างกัน ${cashDiff.toFixed(2)} บาท`);
+    cashStatusEl.innerHTML = `<div class="hard-block-banner">🔴 แจ้งยอดเงินสดนำส่งไม่ครบ<br>โปรดตรวจสอบใหม่อีกครั้ง<br><span style="font-size:12px; font-weight:500;">(นับได้ ${cashSum.toFixed(2)} / ต้องส่ง ${remain.toFixed(2)} ต่างกัน ${cashDiff.toFixed(2)} บาท)</span></div>`;
   }
 
-  // seal open reason check (required if mismatched, else just informational, not a hard block)
+  // seal open reason check (required if mismatched AND branch has history, else no check at all)
   const sealOpenVal = +document.getElementById('sealOpen').value || 0;
-  if(sealOpenVal !== expectedSealOpen){
+  if(branchHasHistory && sealOpenVal !== expectedSealOpen){
     const reasonSel = document.getElementById('sealOpenReason').value;
     const reasonOther = document.getElementById('sealOpenReasonOther').value.trim();
     const reasonFilled = reasonSel && (reasonSel !== 'other' || reasonOther);
@@ -1462,9 +1500,10 @@ function recalcAll(){
   }
 
   // seal dispatch check (close-open vs total dispatched) -> orange, ต้องระบุสาเหตุ
+  // เครื่องซีลมี 4 หลัก (0000-9999) วนกลับมา 0000 อัตโนมัติเมื่อเลยเลข 9999 ต้องคิดเผื่อการวนรอบด้วย
   const sealOpen = +document.getElementById('sealOpen').value || 0;
   const sealClose = +document.getElementById('sealClose').value || 0;
-  const sealReading = sealClose - sealOpen;
+  const sealReading = (sealClose >= sealOpen) ? (sealClose - sealOpen) : ((10000 - sealOpen) + sealClose);
   document.getElementById('sealDiffDisplay').textContent = sealReading;
   document.getElementById('sealDispatchDisplay').textContent = totalSealDispatch;
 
@@ -1492,7 +1531,7 @@ function recalcAll(){
   // red balance status block
   const redStatusEl = document.getElementById('redBalanceStatus');
   const overridePanel = document.getElementById('overridePanel');
-  if(redIssues.length){
+  if(redIssues.length && !hardBlockIssues.length){
     redStatusEl.innerHTML = `<div class="status-pill status-red"><span class="dot"></span>บันทึกปกติไม่ได้ พบ ${redIssues.length} รายการที่ต้องแก้ไข (หรือขออนุมัติส่งด้านล่าง):<ul>${redIssues.map(t=>`<li>${t}</li>`).join('')}</ul></div>`;
     overridePanel.style.display = 'block';
   } else {
@@ -1503,7 +1542,11 @@ function recalcAll(){
   // footer flag + save button state
   const saveBtn = document.getElementById('saveBtn');
   const footerFlag = document.getElementById('footerFlag');
-  if(redIssues.length){
+  if(hardBlockIssues.length){
+    saveBtn.disabled = true;
+    footerFlag.textContent = 'เงินสดไม่ตรง — ต้องแก้ไขให้ตรงก่อนเท่านั้น ไม่มีทางขออนุมัติ';
+    footerFlag.className = 'footer-flag red';
+  } else if(redIssues.length){
     saveBtn.disabled = true;
     footerFlag.textContent = `ติดแดง ${redIssues.length} รายการ — ดูช่องขออนุมัติด้านล่าง`;
     footerFlag.className = 'footer-flag red';
@@ -1519,6 +1562,7 @@ function recalcAll(){
 
   window.__orangeIssues = orangeIssues;
   window.__redIssues = redIssues;
+  window.__hardBlockIssues = hardBlockIssues;
 }
 
 ['addonQty','addonPrice','expense','cutoff','sealClose'].forEach(id=>{
@@ -1608,6 +1652,10 @@ function checkExistingThenSave(data){
 
 function saveForm(){
   recalcAll();
+  if(window.__hardBlockIssues && window.__hardBlockIssues.length){
+    alert('🔴 แจ้งยอดเงินสดนำส่งไม่ครบ โปรดตรวจสอบใหม่อีกครั้ง — จุดนี้ต้องแก้ไขให้ตรงเท่านั้น ไม่มีทางขออนุมัติส่งข้อมูล');
+    return;
+  }
   if(window.__redIssues.length){
     alert('บันทึกปกติไม่ได้ — กรุณาแก้ไขให้ตรง หรือใช้ช่อง "ขออนุมัติส่งข้อมูล" ด้านล่างสุด');
     return;
@@ -1626,6 +1674,10 @@ function saveForm(){
 
 function submitOverride(){
   recalcAll();
+  if(window.__hardBlockIssues && window.__hardBlockIssues.length){
+    alert('🔴 แจ้งยอดเงินสดนำส่งไม่ครบ โปรดตรวจสอบใหม่อีกครั้ง — จุดนี้ขออนุมัติไม่ได้ ต้องแก้ไขให้ตรงเท่านั้น');
+    return;
+  }
   const note = document.getElementById('overrideNote').value.trim();
   if(!note){
     alert('กรุณาระบุหมายเหตุ/สาเหตุของปัญหาก่อนขออนุมัติส่งข้อมูล');
@@ -1656,6 +1708,46 @@ function fetchCommissionStatus(){
 function printForm(){
   recalcAll();
   window.print();
+}
+
+function exportPDF(){
+  recalcAll();
+
+  // จำสถานะพับ/เปิดของแต่ละการ์ดแก้วไว้ก่อน แล้วเปิดให้หมดชั่วคราวเพื่อให้ PDF เห็นข้อมูลครบ
+  const collapsedStates = [];
+  document.querySelectorAll('.cup-card').forEach(card=>{
+    const body = card.querySelector('.cup-body');
+    collapsedStates.push({ card, wasCollapsed: body.classList.contains('collapsed') });
+    body.classList.remove('collapsed');
+    card.classList.add('open');
+  });
+
+  document.body.classList.add('pdf-export-mode');
+
+  const target = document.querySelector('.wrap');
+  const dateStr = document.getElementById('saleDate').value || '';
+  const opt = {
+    margin: 5,
+    filename: `ใบรายการขาย_${resolvedBranchCode||'สาขา'}_${dateStr}.pdf`,
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css','legacy'] }
+  };
+
+  const restore = () => {
+    document.body.classList.remove('pdf-export-mode');
+    collapsedStates.forEach(s=>{
+      if(s.wasCollapsed){
+        s.card.querySelector('.cup-body').classList.add('collapsed');
+        s.card.classList.remove('open');
+      }
+    });
+  };
+
+  html2pdf().set(opt).from(target).save()
+    .then(restore)
+    .catch(()=>{ restore(); alert('สร้าง PDF ไม่สำเร็จ ลองใหม่อีกครั้ง'); });
 }
 
 function exportCSV(){
