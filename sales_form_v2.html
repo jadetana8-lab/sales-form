@@ -250,7 +250,34 @@
     .step-btn{ display:none; }
     .stepper{ display:block; }
     .status-pill, .mismatch-box, .warn-text{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    @page{ size:A4; margin:8mm; }
   }
+
+  /* ---------- เทมเพลตพิมพ์แบบฟอร์มกระดาษ (อ้างอิงใบรายการขายเดิม) ---------- */
+  /* ไม่ผูกกับ @media print เพราะ html2pdf/html2canvas จับภาพจากหน้าจอปกติ ไม่ใช่โหมดพิมพ์ */
+  #paperPrintTemplate{ display:none; }
+  body.paper-print-mode .wrap,
+  body.paper-print-mode .footer-bar,
+  body.paper-print-mode .toast,
+  body.paper-print-mode .modal-overlay{ display:none !important; }
+  body.paper-print-mode #paperPrintTemplate{ display:block !important; }
+
+  #paperPrintTemplate{
+    --pp-font-size:10px;
+    width:194mm; margin:0 auto; padding:6mm;
+    font-family:'Noto Sans Thai',sans-serif; color:#000; background:#fff;
+    font-size:var(--pp-font-size); line-height:1.3;
+  }
+  #paperPrintTemplate table{ width:100%; border-collapse:collapse; margin-bottom:4px; }
+  #paperPrintTemplate th, #paperPrintTemplate td{ border:1px solid #000; padding:1.5px 4px; font-size:var(--pp-font-size); }
+  #paperPrintTemplate th{ background:#eee; }
+  #paperPrintTemplate .pp-title{ text-align:center; font-family:'Kanit',sans-serif; font-weight:700; margin-bottom:6px; font-size:calc(var(--pp-font-size) + 5px); }
+  #paperPrintTemplate .pp-row1{ display:flex; gap:16px; flex-wrap:wrap; margin-bottom:3px; }
+  #paperPrintTemplate .pp-mid{ display:grid; grid-template-columns:1fr 1fr; gap:8px; align-items:start; margin-top:6px; }
+  #paperPrintTemplate .pp-summary{ display:grid; grid-template-columns:repeat(3,1fr); gap:4px; margin-top:8px; font-weight:600; border-top:1px solid #000; padding-top:6px; }
+  #paperPrintTemplate .pp-sign{ display:flex; justify-content:space-between; margin-top:16px; }
+  #paperPrintTemplate .pp-footer{ text-align:center; margin-top:10px; text-decoration:underline; font-size:calc(var(--pp-font-size) - 1px); }
+  #paperPrintTemplate caption{ text-align:left; font-weight:700; caption-side:top; padding-bottom:2px; }
   .toast{ position:fixed; top:16px; left:50%; transform:translateX(-50%); background:var(--teal-dark); color:#fff; padding:10px 18px; border-radius:30px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:90%; text-align:center; }
   .toast.show{ opacity:1; }
 
@@ -468,38 +495,51 @@
       <label>ยอดโอนรวมทั้งหมด (พนักงานกรอกเอง)</label>
       <input id="transferManualTotal" type="number" min="0" value="0">
     </div>
-    <label class="multi-upload">
-      📎 แนบภาพสลิปได้ทีเดียวหลายภาพ (ให้ระบบช่วยอ่านยอด)
-      <input type="file" accept="image/*" multiple id="slipMultiInput" onchange="handleMultiUpload(this,'transfer')">
+    <label class="switch-row">
+      <input type="checkbox" id="slipOcrToggle">
+      แนบสลิปหลักฐานการโอน ให้ระบบช่วยอ่านยอด (OCR)
     </label>
-    <div id="transferImageGallery" class="image-gallery"></div>
-    <button class="btn-add" onclick="readSlipImages()">🔍 ให้ระบบอ่านยอดจากภาพ</button>
+    <div class="sub-box" id="slipOcrSection">
+      <label class="multi-upload">
+        📎 แนบภาพสลิปได้ทีเดียวหลายภาพ (ให้ระบบช่วยอ่านยอด)
+        <input type="file" accept="image/*" multiple id="slipMultiInput" onchange="handleMultiUpload(this,'transfer')">
+      </label>
+      <div id="transferImageGallery" class="image-gallery"></div>
+      <button class="btn-add" onclick="readSlipImages()">🔍 ให้ระบบอ่านยอดจากภาพ</button>
+      <div class="result-line2"><span>ยอดที่ระบบอ่านได้จากภาพ</span><b id="transferOcrTotal">ยังไม่ได้อ่าน</b></div>
+      <pre id="transferDebugBox" style="display:none; background:#1B2B29; color:#8FE3A0; font-size:10px; padding:8px; border-radius:8px; white-space:pre-wrap; word-break:break-all; margin-top:8px; max-height:200px; overflow-y:auto;"></pre>
+    </div>
 
     <div class="result-line"><span>ยอดที่พนักงานกรอก</span><b id="transferManualDisplay">0.00 บาท</b></div>
-    <div class="result-line2"><span>ยอดที่ระบบอ่านได้จากภาพ</span><b id="transferOcrTotal">ยังไม่ได้อ่าน</b></div>
     <div class="result-line2"><span>ยอดโอนตามแก้ว (จัมโบ้+ใหญ่+เล็ก+น้ำเต้าหู้ x ราคา)</span><b id="transferFromCups">0.00 บาท</b></div>
     <div id="transferMismatchMsg" class="warn-text" style="color:var(--orange);"></div>
-    <pre id="transferDebugBox" style="display:none; background:#1B2B29; color:#8FE3A0; font-size:10px; padding:8px; border-radius:8px; white-space:pre-wrap; word-break:break-all; margin-top:8px; max-height:200px; overflow-y:auto;"></pre>
-    <div class="note">ยอดจากภาพเทียบกับยอดที่กรอกเองเพื่อกันความผิดพลาด — ถ้าไม่ตรงกัน (เช่น ภาพเบลอ อ่านไม่ออก) ระบบจะติดสถานะส้มให้ตรวจสอบ แต่ยังส่งข้อมูลได้ตามปกติ</div>
+    <div class="note">เปิดสวิตช์ด้านบนถ้าต้องการให้ระบบช่วยอ่านยอดจากภาพสลิป — ยอดจากภาพเทียบกับยอดที่กรอกเองเพื่อกันความผิดพลาด ถ้าไม่ตรงกัน (เช่น ภาพเบลอ อ่านไม่ออก) ระบบจะติดสถานะส้มให้ตรวจสอบ แต่ยังส่งข้อมูลได้ตามปกติ</div>
   </div>
 
   <!-- 5. ไลน์แมน -->
   <div class="card">
     <h2><span class="num">5</span>ออเดอร์ไลน์แมน (LINE MAN)</h2>
-    <label class="multi-upload">
-      📎 แนบภาพออเดอร์ได้ทีเดียวหลายภาพ
-      <input type="file" accept="image/*" multiple id="lmMultiInput" onchange="handleMultiUpload(this,'lineman')">
+    <label class="switch-row">
+      <input type="checkbox" id="linemanOcrToggle">
+      แนบภาพออเดอร์ไลน์แมน ให้ระบบช่วยอ่าน (OCR) — สาขาไม่มีไลน์แมนไม่ต้องเปิดก็ได้
     </label>
-    <div id="linemanImageGallery" class="image-gallery"></div>
-    <button class="btn-add" onclick="readLinemanImages()">🔍 ให้ระบบอ่านออเดอร์จากภาพ</button>
+    <div class="sub-box" id="linemanOcrSection">
+      <label class="multi-upload">
+        📎 แนบภาพออเดอร์ได้ทีเดียวหลายภาพ
+        <input type="file" accept="image/*" multiple id="lmMultiInput" onchange="handleMultiUpload(this,'lineman')">
+      </label>
+      <div id="linemanImageGallery" class="image-gallery"></div>
+      <button class="btn-add" onclick="readLinemanImages()">🔍 ให้ระบบอ่านออเดอร์จากภาพ</button>
 
-    <table id="linemanResultTable" style="margin-top:10px;">
-      <thead><tr><th>เลขออเดอร์</th><th>จัมโบ้</th><th>ใหญ่</th><th>เล็ก</th><th>น้ำเต้าหู้</th></tr></thead>
-      <tbody id="linemanResultBody"></tbody>
-    </table>
-    <div class="result-line"><span>สรุปรวมจากภาพ</span><b id="linemanOcrSummary">ยังไม่ได้อ่าน</b></div>
-    <div id="linemanCheck" class="note"></div>
+      <table id="linemanResultTable" style="margin-top:10px;">
+        <thead><tr><th>เลขออเดอร์</th><th>จัมโบ้</th><th>ใหญ่</th><th>เล็ก</th><th>น้ำเต้าหู้</th></tr></thead>
+        <tbody id="linemanResultBody"></tbody>
+      </table>
+      <div class="result-line"><span>สรุปรวมจากภาพ</span><b id="linemanOcrSummary">ยังไม่ได้อ่าน</b></div>
+      <div id="linemanCheck" class="note"></div>
+    </div>
   </div>
+
 
   <!-- 6. นับเงินสด -->
   <div class="card">
@@ -548,6 +588,76 @@
 
 </div>
 
+<!-- ===== เทมเพลตพิมพ์แบบฟอร์มกระดาษ (แสดงเฉพาะตอนพิมพ์/ดาวน์โหลด PDF แบบกระดาษ) ===== -->
+<div id="paperPrintTemplate">
+  <div class="pp-title">ใบรายการขาย</div>
+  <div class="pp-row1">
+    <span>สาขา <b id="ppBranch">-</b></span>
+    <span>วันที่ <b id="ppDate">-</b></span>
+    <span>รหัสสาขา <b id="ppBranchCode">-</b></span>
+  </div>
+  <div class="pp-row1">
+    <span>เวลา <b id="ppTimeOpen">-</b> - <b id="ppTimeClose">-</b></span>
+    <span>เครื่องซีลเปิด <b id="ppSealOpen">0</b></span>
+    <span>เครื่องซีลปิด <b id="ppSealClose">0</b></span>
+    <span>น้ำแข็ง <b id="ppIce">0</b> กระสอบ</span>
+  </div>
+  <div class="pp-row1">
+    <span>รหัสพนักงาน <b id="ppEmpCode">-</b></span>
+    <span>ชื่อผู้รับผิดชอบ <b id="ppFirstName">-</b></span>
+    <span>นามสกุล <b id="ppLastName">-</b></span>
+    <span>ชื่อเล่น <b id="ppNickname">-</b></span>
+  </div>
+
+  <table>
+    <tbody id="ppCupRows"></tbody>
+  </table>
+
+  <div class="pp-mid">
+    <div>
+      <table>
+        <tr><td>แก้วจัมโบ้</td><td id="ppPJumboQty">0</td><td>x 35 =</td><td id="ppPJumboAmt">0.00</td></tr>
+        <tr><td>แก้วใหญ่</td><td id="ppPLargeQty">0</td><td>x 30 =</td><td id="ppPLargeAmt">0.00</td></tr>
+        <tr><td>แก้วเล็ก</td><td id="ppPSmallQty">0</td><td>x 25 =</td><td id="ppPSmallAmt">0.00</td></tr>
+        <tr><td>น้ำเต้าหู้</td><td id="ppPSoyQty">0</td><td>x 15 =</td><td id="ppPSoyAmt">0.00</td></tr>
+        <tr><td>ไข่มุก/วุ้น</td><td id="ppAddonQty">0</td><td>=</td><td id="ppAddonAmt">0.00</td></tr>
+      </table>
+      <table>
+        <thead><tr><th colspan="4">นับธนบัตร/เหรียญ</th></tr></thead>
+        <tbody id="ppCashRows"></tbody>
+        <tr><td colspan="3">รวมเงินสด</td><td id="ppCashTotal">0.00 บาท</td></tr>
+      </table>
+    </div>
+    <div>
+      <table>
+        <caption>เงินโอนเข้าบริษัทเท่านั้น</caption>
+        <thead><tr><th>ลำดับ</th><th>เวลา</th><th>ชื่อลูกค้า</th><th>จำนวนเงิน</th></tr></thead>
+        <tbody id="ppSlipRows"></tbody>
+      </table>
+      <table>
+        <caption>หมายเลขออเดอร์ (LINE MAN)</caption>
+        <thead><tr><th>ลำดับ</th><th>ออเดอร์</th><th>จัมโบ้</th><th>ใหญ่</th><th>เล็ก</th><th>น้ำเต้าหู้</th></tr></thead>
+        <tbody id="ppLinemanRows"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="pp-summary">
+    <div>ยอดขาย <b id="ppSumSales">0.00</b></div>
+    <div>โอน บ/ช <b id="ppTransferTotal">0.00</b></div>
+    <div>ตัดยอด <b id="ppCutoff">0.00</b></div>
+    <div>ค่าใช้จ่าย <b id="ppExpense">0.00</b></div>
+    <div>คงเหลือ <b id="ppSumRemain">0.00</b></div>
+  </div>
+
+  <div class="pp-sign">
+    <span>สาขา <b id="ppSignBranch">-</b> / ชื่อ <b id="ppSignName">-</b></span>
+    <span>ผู้ตัดยอด ________________________</span>
+  </div>
+
+  <div class="pp-footer">ขอความร่วมมือพนักงานทุกท่านตรวจสอบบัญชี "ถูกต้อง" "แม่นยำ" "เรียบร้อย" ด้วย (ขอบคุณค่ะ)</div>
+</div>
+
 <div class="footer-bar">
   <div class="inner">
     <div class="footer-row">
@@ -558,8 +668,10 @@
         <div id="draftStatus" style="font-size:10px; color:var(--muted); margin-top:2px;"></div>
       </div>
       <div style="display:flex; gap:6px; align-items:center;">
-        <button class="icon-btn" onclick="printForm()" title="พิมพ์">🖨️</button>
-        <button class="icon-btn" onclick="exportPDF()" title="ดาวน์โหลด PDF">📄</button>
+        <button class="icon-btn" onclick="printForm()" title="พิมพ์ (แบบหน้าจอ)">🖨️</button>
+        <button class="icon-btn" onclick="exportPDF()" title="ดาวน์โหลด PDF (แบบหน้าจอ)">📄</button>
+        <button class="icon-btn" onclick="printPaperForm()" title="พิมพ์แบบฟอร์มกระดาษ (ใบรายการขาย)">🧾</button>
+        <button class="icon-btn" onclick="exportPaperFormPDF()" title="ดาวน์โหลด PDF แบบฟอร์มกระดาษ">📑</button>
         <button class="icon-btn" onclick="exportCSV()" title="Export CSV">⬇️</button>
         <button class="save-btn" id="saveBtn" onclick="saveForm()">บันทึกรายการ</button>
       </div>
@@ -806,6 +918,7 @@ cashDenoms.forEach(d=>{
 let transferImages = []; // { dataUrl, base64 }
 let linemanImages = [];
 let linemanOcrRows = []; // { order, jumbo, large, small, soy }
+let transferSlipRows = []; // { time, name, amount } — จาก OCR สลิป ไว้พิมพ์ตาราง "ชื่อลูกค้า/จำนวนเงิน"
 
 function addImageToGallery(containerId, arr, dataUrl){
   const mimeMatch = dataUrl.match(/^data:([^;]+);/);
@@ -854,9 +967,11 @@ function readSlipImages(){
           el.innerHTML += '<br><span style="color:var(--orange)">⚠ ' + res.errors.join('<br>⚠ ') + '</span>';
         }
         el.dataset.value = res.total;
+        transferSlipRows = res.rows || [];
       } else {
         el.textContent = 'อ่านไม่สำเร็จ: ' + (res.error||'ไม่ทราบสาเหตุ');
         el.dataset.value = '';
+        transferSlipRows = [];
       }
       recalcAll();
     })
@@ -1028,19 +1143,66 @@ function tryRestoreDraft(){
 document.addEventListener('input', saveDraft);
 document.addEventListener('change', saveDraft);
 
+// ---------- ย่อขนาดภาพก่อนอัปโหลด (ลดปริมาณข้อมูล/เวลาอัปโหลด/ค่าใช้จ่าย OCR) ----------
+// ใช้กับทั้งภาพสลิปโอนและภาพออเดอร์ไลน์แมน เพราะทั้งคู่ผ่านฟังก์ชัน handleMultiUpload นี้ร่วมกัน
+const IMAGE_MAX_DIMENSION = 1600; // px ด้านยาวสุด — พอสำหรับให้ OCR อ่านตัวหนังสือในภาพได้ชัดเจน
+const IMAGE_JPEG_QUALITY = 0.8;
+
+function readFileAsDataURL_(file){
+  return new Promise(resolve=>{
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
+
+function compressImage(file){
+  return new Promise(resolve=>{
+    // ไฟล์ไม่ใช่รูปภาพ (เผื่อกรณีแปลกๆ) ใช้ของเดิมไปเลย ไม่พยายามย่อ
+    if(!file.type || !file.type.startsWith('image/')){
+      readFileAsDataURL_(file).then(resolve);
+      return;
+    }
+    const img = new Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const { width, height } = img;
+      if(width <= IMAGE_MAX_DIMENSION && height <= IMAGE_MAX_DIMENSION){
+        // ภาพเล็กพออยู่แล้ว ไม่ต้องย่อซ้ำ (กันคุณภาพเสียโดยไม่จำเป็น)
+        readFileAsDataURL_(file).then(resolve);
+        return;
+      }
+      const scale = Math.min(IMAGE_MAX_DIMENSION / width, IMAGE_MAX_DIMENSION / height);
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(width * scale);
+      canvas.height = Math.round(height * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', IMAGE_JPEG_QUALITY));
+    };
+    img.onerror = () => {
+      // วาดผ่าน canvas ไม่ได้ (ไฟล์เสีย/รูปแบบไม่รองรับ) ใช้ไฟล์เดิมแทน กันฟอร์มค้าง
+      URL.revokeObjectURL(objectUrl);
+      readFileAsDataURL_(file).then(resolve);
+    };
+    img.src = objectUrl;
+  });
+}
+
 // ---------- MULTI UPLOAD ----------
 function handleMultiUpload(input, kind){
   const files = Array.from(input.files || []);
   files.forEach(file=>{
-    const reader = new FileReader();
-    reader.onload = e=>{
+    compressImage(file).then(dataUrl=>{
+      if(!dataUrl) return; // อ่านไฟล์ไม่สำเร็จจริงๆ ข้ามไปเงียบๆ ไม่ทำให้ทั้งฟอร์มค้าง
       if(kind === 'transfer'){
-        addImageToGallery('transferImageGallery', transferImages, e.target.result);
+        addImageToGallery('transferImageGallery', transferImages, dataUrl);
       } else {
-        addImageToGallery('linemanImageGallery', linemanImages, e.target.result);
+        addImageToGallery('linemanImageGallery', linemanImages, dataUrl);
       }
-    };
-    reader.readAsDataURL(file);
+    });
   });
   input.value = '';
 }
@@ -1064,6 +1226,37 @@ document.getElementById('substituteToggle').addEventListener('change', function(
     updateEmployee();
   }
 });
+
+// ---------- เปิด/ปิด OCR อ่านสลิปโอน (จำค่าไว้ในเครื่องนี้ ไม่เกี่ยวกับ draft) ----------
+// ปิดไว้เป็นค่าเริ่มต้น — สาขาไหนไม่มีเงินโอน หรือระบบยังใช้งานไม่ได้ ก็ปล่อยปิดไว้ได้เลย
+// พนักงานเปิดเองครั้งเดียว ระบบจะจำไว้ให้ในเครื่องนั้นๆ ไม่ต้องมาเปิดใหม่ทุกวัน
+const SLIP_OCR_KEY = 'slipOcrEnabled_v1';
+(function initSlipOcrToggle(){
+  const toggle = document.getElementById('slipOcrToggle');
+  const section = document.getElementById('slipOcrSection');
+  const saved = localStorage.getItem(SLIP_OCR_KEY) === '1';
+  toggle.checked = saved;
+  section.classList.toggle('show', saved);
+  toggle.addEventListener('change', function(){
+    localStorage.setItem(SLIP_OCR_KEY, this.checked ? '1' : '0');
+    section.classList.toggle('show', this.checked);
+  });
+})();
+
+// ---------- เปิด/ปิด OCR อ่านออเดอร์ไลน์แมน (จำค่าไว้ในเครื่องนี้ แยกคีย์กับสลิป) ----------
+const LINEMAN_OCR_KEY = 'linemanOcrEnabled_v1';
+(function initLinemanOcrToggle(){
+  const toggle = document.getElementById('linemanOcrToggle');
+  const section = document.getElementById('linemanOcrSection');
+  const saved = localStorage.getItem(LINEMAN_OCR_KEY) === '1';
+  toggle.checked = saved;
+  section.classList.toggle('show', saved);
+  toggle.addEventListener('change', function(){
+    localStorage.setItem(LINEMAN_OCR_KEY, this.checked ? '1' : '0');
+    section.classList.toggle('show', this.checked);
+  });
+})();
+
 document.getElementById('subBranchCode').addEventListener('input', function(){
   const raw = this.value.trim();
   const matchByName = branchListCache.find(b => b.branch === raw);
@@ -1761,6 +1954,150 @@ function exportPDF(){
     });
   };
 
+  html2pdf().set(opt).from(target).save()
+    .then(restore)
+    .catch(()=>{ restore(); alert('สร้าง PDF ไม่สำเร็จ ลองใหม่อีกครั้ง'); });
+}
+
+// ===================================================================
+// พิมพ์ "แบบฟอร์มกระดาษ" (อ้างอิงใบรายการขายเดิม) — ไม่กระทบหน้าจอกรอกข้อมูลเลย
+// ใช้เทมเพลตแยกต่างหาก (#paperPrintTemplate) ดึงข้อมูลจากฟอร์มมาเติมตอนกดพิมพ์/PDF เท่านั้น
+// ===================================================================
+const CUP_LABELS_PP = { jumbo:'แก้วจัมโบ้', large:'แก้วใหญ่', small:'แก้วเล็ก', soy:'น้ำเต้าหู้' };
+
+function buildPaperPrintTemplate(){
+  recalcAll();
+  const data = collectFormData();
+  const cups = JSON.parse(data.cups);
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = (val===undefined||val===null||val==='') ? '-' : val; };
+
+  set('ppBranch', data.branchName);
+  set('ppDate', data.saleDate);
+  set('ppBranchCode', data.branchCode);
+  set('ppTimeOpen', data.timeOpen);
+  set('ppTimeClose', data.timeClose);
+  set('ppSealOpen', data.sealOpen || 0);
+  set('ppSealClose', data.sealClose || 0);
+  set('ppIce', data.iceBags || 0);
+  set('ppEmpCode', data.empCode);
+  set('ppFirstName', data.empFirstName);
+  set('ppLastName', data.empLastName);
+  set('ppNickname', data.empNickname);
+
+  // ตารางแก้ว — แก้วจัมโบ้/ใหญ่/เล็ก รวมตั้งต้น+รับเพิ่มเป็นค่าเดียว (กระดาษมีช่องเดียว)
+  // น้ำเต้าหู้แยกยกมา/รับเข้าตามกระดาษเดิม เพราะเป็นชนิดเดียวที่มีสถานะยกมาจากเมื่อวาน
+  // (ฟรี/เสีย/ไลน์แมน) ของกระดาษมีช่องเดียว จึงพิมพ์ 3 ค่าคั่นด้วย / ในช่องเดียวกัน
+  const cupBody = document.getElementById('ppCupRows');
+  cupBody.innerHTML = '';
+  cupTypes.forEach(c=>{
+    const v = cups[c.key] || {};
+    const fdl = `${v.free||0}/${v.damaged||0}/${v.lineman||0}`;
+    const tr = document.createElement('tr');
+    if(c.key === 'soy'){
+      tr.innerHTML = `<td>${CUP_LABELS_PP[c.key]} (ยกมา)</td><td>${v.base||0}</td><td>รับเข้า</td><td>${v.extra||0}</td>
+        <td>ยอดโอน</td><td>${v.transfer||0}</td><td>ขายไป</td><td>${v.sold||0}</td>
+        <td>(ฟรี/เสีย/ไลน์แมน)</td><td>${fdl}</td><td>แก้วเหลือ</td><td>${v.remaining||0}</td>`;
+    } else {
+      const startQty = (+v.base||0) + (+v.extra||0);
+      tr.innerHTML = `<td>${CUP_LABELS_PP[c.key]}</td><td>${startQty}</td>
+        <td>ยอดโอน</td><td>${v.transfer||0}</td><td>ขายไป</td><td>${v.sold||0}</td>
+        <td>(ฟรี/เสีย/ไลน์แมน)</td><td>${fdl}</td><td>แก้วเหลือ</td><td>${v.remaining||0}</td>`;
+    }
+    cupBody.appendChild(tr);
+  });
+
+  // ราคาแก้ว x จำนวนขาย
+  ['jumbo','large','small','soy'].forEach(key=>{
+    const v = cups[key] || { sold:0, cashRevenue:0 };
+    const capKey = key.charAt(0).toUpperCase() + key.slice(1);
+    set('ppP' + capKey + 'Qty', v.sold || 0);
+    set('ppP' + capKey + 'Amt', (+v.cashRevenue || 0).toFixed(2));
+  });
+  set('ppAddonQty', data.addonQty || 0);
+  set('ppAddonAmt', (+data.addonTotal || 0).toFixed(2));
+
+  // ตารางธนบัตร/เหรียญ
+  const cashBody = document.getElementById('ppCashRows');
+  cashBody.innerHTML = '';
+  document.querySelectorAll('.cash-row').forEach(row=>{
+    const val = +row.dataset.val;
+    const qty = +row.querySelector('.cash-qty').value || 0;
+    const label = (val >= 20 ? 'แบงค์ ' : 'เหรียญ ') + val;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${label}</td><td>${qty}</td><td>=</td><td>${(val*qty).toFixed(2)}</td>`;
+    cashBody.appendChild(tr);
+  });
+  set('ppCashTotal', data.cashTotal);
+
+  // ตารางลูกค้าที่โอนเงิน (จาก OCR สลิป — ว่างถ้ายังไม่เปิด/ยังอ่านไม่ได้)
+  const slipBody = document.getElementById('ppSlipRows');
+  slipBody.innerHTML = '';
+  if(transferSlipRows.length){
+    transferSlipRows.forEach((r,i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${i+1}</td><td>${r.time || '-'}</td><td>${r.name || '-'}</td><td>${(+r.amount||0).toFixed(2)}</td>`;
+      slipBody.appendChild(tr);
+    });
+  } else {
+    slipBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#666;">ไม่มีข้อมูลจากภาพสลิป</td></tr>';
+  }
+
+  // ตารางออเดอร์ไลน์แมน (1 แถว/1 ออเดอร์ ตามที่ระบบเก็บจริง)
+  const lmBody = document.getElementById('ppLinemanRows');
+  lmBody.innerHTML = '';
+  if(linemanOcrRows.length){
+    linemanOcrRows.forEach((o,i)=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${i+1}</td><td>${o.order || '-'}</td><td>${o.jumbo||0}</td><td>${o.large||0}</td><td>${o.small||0}</td><td>${o.soy||0}</td>`;
+      lmBody.appendChild(tr);
+    });
+  } else {
+    lmBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#666;">ไม่มีข้อมูลออเดอร์ไลน์แมน</td></tr>';
+  }
+
+  // สรุปยอดท้ายฟอร์ม
+  set('ppSumSales', data.sumSales);
+  set('ppTransferTotal', (+data.transferManualTotal || 0).toFixed(2) + ' บาท');
+  set('ppCutoff', (+data.cutoff || 0).toFixed(2) + ' บาท');
+  set('ppExpense', (+data.expense || 0).toFixed(2) + ' บาท');
+  set('ppSumRemain', data.sumRemain);
+
+  set('ppSignBranch', data.branchName);
+  set('ppSignName', `${data.empFirstName||''} ${data.empLastName||''}`.trim());
+
+  // ปรับขนาดฟอนต์อัตโนมัติตามปริมาณแถวข้อมูล (สลิป+ไลน์แมน) ให้พอดีกระดาษ A4 แผ่นเดียว
+  const extraRows = transferSlipRows.length + linemanOcrRows.length;
+  let fontSize = 10;
+  if(extraRows > 10) fontSize = 9;
+  if(extraRows > 20) fontSize = 8;
+  if(extraRows > 30) fontSize = 7;
+  if(extraRows > 45) fontSize = 6;
+  document.getElementById('paperPrintTemplate').style.setProperty('--pp-font-size', fontSize + 'px');
+}
+
+function printPaperForm(){
+  buildPaperPrintTemplate();
+  document.body.classList.add('paper-print-mode');
+  const cleanup = () => document.body.classList.remove('paper-print-mode');
+  window.addEventListener('afterprint', cleanup, { once:true });
+  window.print();
+  setTimeout(cleanup, 1500); // กันเบราว์เซอร์ที่ไม่รองรับ afterprint ค้างสถานะ
+}
+
+function exportPaperFormPDF(){
+  buildPaperPrintTemplate();
+  document.body.classList.add('paper-print-mode');
+  const dateStr = document.getElementById('saleDate').value || '';
+  const opt = {
+    margin: 5,
+    filename: `ใบรายการขาย_กระดาษ_${resolvedBranchCode||'สาขา'}_${dateStr}.pdf`,
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css','legacy'] }
+  };
+  const target = document.getElementById('paperPrintTemplate');
+  const restore = () => document.body.classList.remove('paper-print-mode');
   html2pdf().set(opt).from(target).save()
     .then(restore)
     .catch(()=>{ restore(); alert('สร้าง PDF ไม่สำเร็จ ลองใหม่อีกครั้ง'); });
