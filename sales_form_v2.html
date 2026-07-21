@@ -639,7 +639,10 @@ function attachStepper(input){
 }
 
 function wrapAllNumberInputs(root=document){
-  root.querySelectorAll('input[type="number"]').forEach(attachStepper);
+  root.querySelectorAll('input[type="number"]').forEach(inp=>{
+    if(inp.hasAttribute('readonly')) return; // ล็อกไว้ (เช่น แก้วตั้งต้น/par ตามสาขา งานที่ 5) — ไม่ต้องมีปุ่ม +/-
+    attachStepper(inp);
+  });
 }
 
 // ---------- BUILD CUP CARDS ----------
@@ -648,7 +651,7 @@ cupTypes.forEach(c=>{
   const card = el('div',{class:'cup-card','data-key':c.key,'data-type':c.type});
   const receivedRowHtml = c.type === 'reset'
     ? `<div class="received-row">
-         <div class="field"><label>แก้วตั้งต้น (par)</label><input type="number" min="0" value="50" class="in-base"></div>
+         <div class="field"><label>แก้วตั้งต้น (par) 🔒</label><input type="number" min="0" value="50" class="in-base" readonly></div>
          <div class="field"><label>แก้วรับเพิ่มระหว่างวัน</label><input type="number" min="0" value="0" class="in-extra"></div>
          <div class="total-box"><label>รับรวม</label><div class="val out-total-received">50</div></div>
        </div>`
@@ -753,21 +756,31 @@ function checkSealOpenMismatch(){
 // ---------- BRANCH CARRYOVER LOADING ----------
 function loadBranchCarryover(branchCode){
   resolvedBranchCode = branchCode || '';
-  const applyData = (soyRemaining, sealClose, found) => {
+  const applyData = (soyRemaining, sealClose, found, jumboPar, largePar, smallPar) => {
     expectedSoyCarry = soyRemaining || 0;
     expectedSealOpen = sealClose || 0;
     branchHasHistory = !!found;
     const soyCard = document.querySelector('.cup-card[data-key="soy"]');
     soyCard.querySelector('.in-carry').value = expectedSoyCarry;
     document.getElementById('sealOpen').value = expectedSealOpen;
+
+    // งานที่ 5 — ล็อกแก้วตั้งต้น (par) รายสาขา ดึงจาก Code.gs (แท็บ "สาขา" คอลัมน์ E/F/G)
+    // ไม่มี fallback 50 ซ้ำที่นี่เพราะ Code.gs รับประกันว่าคืนค่ามาเสมอ (default 50 ทำที่ฝั่ง Code.gs แล้ว)
+    const parByKey = { jumbo: jumboPar, large: largePar, small: smallPar };
+    Object.keys(parByKey).forEach(key=>{
+      const card = document.querySelector(`.cup-card[data-key="${key}"]`);
+      const baseInput = card && card.querySelector('.in-base');
+      if(baseInput) baseInput.value = parByKey[key];
+    });
+
     checkCarryMismatch(soyCard);
     checkSealOpenMismatch();
   };
 
   fetch(`${API_URL}?action=getCarryover&branchCode=${encodeURIComponent(branchCode)}`)
     .then(r=>r.json())
-    .then(res=> applyData(res.soyRemaining, res.sealClose, res.found))
-    .catch(()=> applyData(0,0,false));
+    .then(res=> applyData(res.soyRemaining, res.sealClose, res.found, res.jumboPar, res.largePar, res.smallPar))
+    .catch(()=> applyData(0,0,false,50,50,50)); // เน็ตหลุด/API ล่ม — ใช้ 50 กันเหนียว ไม่ให้ par กลายเป็นค่าว่าง/0
 }
 
 // ---------- CASH COUNT ----------
@@ -971,7 +984,10 @@ function restoreFormState(snap){
     const card = document.querySelector(`.cup-card[data-key="${key}"]`);
     if(!card) return;
     const set = (sel,val)=>{ const e = card.querySelector(sel); if(e && val!==undefined && val!=='') e.value = val; };
-    set('.in-base', vals.base); set('.in-extra', vals.extra); set('.in-transfer', vals.transfer);
+    // งานที่ 5: การ์ดประเภท "reset" (จัมโบ้/ใหญ่/เล็ก) ห้ามดึงค่า par จาก draft เก่ากลับมา
+    // เพราะเป็นค่าที่ล็อกตามสาขาแล้ว ต้องมาจาก API (loadBranchCarryover) เท่านั้นเสมอ
+    if(card.dataset.type !== 'reset') set('.in-base', vals.base);
+    set('.in-extra', vals.extra); set('.in-transfer', vals.transfer);
     set('.in-remaining', vals.remaining); set('.in-free', vals.free); set('.in-damaged', vals.damaged); set('.in-lineman', vals.lineman);
     set('.carry-reason', vals.carryReason); set('.carry-reason-other', vals.carryReasonOther);
   });
