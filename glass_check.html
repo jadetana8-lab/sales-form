@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>ตรวจนับแก้ว - ระบบพนักงาน</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D5FA8">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+  :root{
+    --ink:#1B2B29; --paper:#EEF5FC; --card:#FFFFFF;
+    --teal:#1D5FA8; --teal-dark:#123A66; --teal-soft:#DCEAFB;
+    --caramel:#C9863F; --caramel-soft:#F6E8D5; --line:#DDD6C7;
+    --red:#B3382C; --red-soft:#FBE7E3; --orange:#C97A1B; --orange-soft:#FBEBD4;
+    --green:#2F8F5B; --green-soft:#E5F3EA; --muted:#7A756A; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Noto Sans Thai',sans-serif; background:var(--paper); color:var(--ink); padding-bottom:110px; }
+
+  .topbar{ background:var(--teal); padding:16px 16px 18px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:20; }
+  .back-btn{ color:#fff; text-decoration:none; font-size:20px; line-height:1; padding:4px 6px; }
+  .topbar h1{ color:#fff; font-family:'Kanit',sans-serif; font-size:17px; margin:0; flex:1; }
+  .counter-badge{ color:#CFE0F5; font-size:11.5px; }
+
+  .wrap{ max-width:640px; margin:0 auto; padding:14px 14px 0; }
+
+  .panel{ background:var(--card); border-radius:var(--radius); padding:14px; margin-bottom:12px; box-shadow:0 1px 3px rgba(20,30,25,.06); }
+  .panel h2{ font-family:'Kanit',sans-serif; font-size:14.5px; margin:0 0 10px; color:var(--teal-dark); }
+
+  .control-row{ display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+  .control-row > div{ flex:1; min-width:140px; }
+  label{ font-size:11.5px; color:var(--muted); display:block; margin-bottom:4px; }
+  select, input[type=date], input[type=number], input[type=text]{
+    width:100%; border:1.5px solid var(--line); border-radius:9px; padding:9px 10px;
+    font-size:14px; font-family:'Noto Sans Thai',sans-serif; background:#fff;
+  }
+  select:focus, input:focus{ outline:none; border-color:var(--teal); }
+
+  .btn{
+    border:none; border-radius:10px; padding:11px 16px; font-family:'Noto Sans Thai',sans-serif;
+    font-weight:700; font-size:13.5px; cursor:pointer;
+  }
+  .btn-primary{ background:var(--teal); color:#fff; width:100%; }
+  .btn-outline{ background:#fff; color:var(--teal); border:1.5px solid var(--teal); }
+  .btn-small{ padding:7px 12px; font-size:12px; border-radius:8px; }
+  .btn:disabled{ opacity:.5; cursor:default; }
+
+  /* ---- route status strip ---- */
+  .route-chip-row{ display:flex; gap:6px; overflow-x:auto; padding-bottom:2px; }
+  .route-chip{
+    flex:none; padding:6px 10px; border-radius:20px; font-size:11.5px; white-space:nowrap;
+    background:var(--teal-soft); color:var(--teal-dark); border:1.5px solid transparent;
+  }
+  .route-chip.done{ background:var(--green-soft); color:var(--green); }
+  .route-chip.active{ border-color:var(--teal); font-weight:700; }
+
+  /* ---- company summary ---- */
+  .sum-row{ display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px dashed var(--line); font-size:13px; }
+  .sum-row:last-child{ border-bottom:none; }
+  .sum-row b{ font-family:'Kanit',sans-serif; }
+  .sum-ok{ color:var(--green); }
+  .sum-warn{ color:var(--orange); }
+  .sum-caption{ font-size:11px; color:var(--muted); margin-top:4px; }
+
+  /* ---- branch card ---- */
+  .branch-card{ border:1px solid var(--line); border-radius:12px; margin-bottom:10px; background:#FCFBF8; overflow:hidden; }
+  .branch-head{ display:flex; align-items:center; gap:8px; padding:12px 14px; cursor:pointer; }
+  .branch-head b{ font-family:'Kanit',sans-serif; font-size:14px; flex:1; }
+  .branch-chevron{ transition:transform .2s; color:var(--muted); }
+  .branch-card.open .branch-chevron{ transform:rotate(180deg); }
+  .status-badge{ font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap; }
+  .status-ok{ background:var(--green-soft); color:var(--green); }
+  .status-mismatch{ background:var(--orange-soft); color:var(--orange); }
+  .status-wait{ background:var(--red-soft); color:var(--red); }
+  .status-empty{ background:#EEE; color:var(--muted); }
+
+  .branch-body{ display:none; padding:0 14px 14px; }
+  .branch-card.open .branch-body{ display:block; }
+
+  .size-row{ border-top:1px dashed var(--line); padding:10px 0; }
+  .size-row:first-child{ border-top:none; }
+  .size-row-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; }
+  .size-row-head b{ font-size:13px; }
+  .ref-val{ font-size:12.5px; }
+  .ref-val .ref-num{ font-family:'Kanit',sans-serif; font-weight:700; color:var(--teal-dark); }
+  .ref-wait{ background:var(--red-soft); color:var(--red); font-weight:700; padding:2px 8px; border-radius:10px; font-size:11px; }
+
+  .size-inputs{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .size-inputs .field label{ margin-bottom:3px; }
+  .row-status{ font-size:11.5px; margin-top:5px; font-weight:600; }
+
+  .attach-row{ margin-top:8px; }
+  .attach-row input[type=file]{ font-size:11.5px; }
+  .attach-link{ font-size:11px; color:var(--teal); margin-left:6px; }
+
+  .saved-note{ font-size:11px; color:var(--muted); margin-top:8px; }
+
+  .branch-actions{ display:flex; gap:8px; margin-top:10px; }
+  .branch-actions .btn{ flex:1; }
+
+  .empty-hint{ text-align:center; color:var(--muted); font-size:13px; padding:24px 0; }
+
+  .footer-bar{
+    position:fixed; bottom:0; left:0; right:0; background:#fff; border-top:1px solid var(--line);
+    padding:10px 14px; z-index:10;
+  }
+  .footer-bar .wrap{ padding:0; max-width:640px; }
+
+  .toast{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    background:var(--teal-dark); color:#fff; padding:10px 18px; border-radius:30px;
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:85%; text-align:center;
+  }
+  .toast.show{ opacity:1; }
+  .toast.err{ background:var(--red); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <a href="dashboard.html" class="back-btn">←</a>
+  <h1>ตรวจนับแก้ว</h1>
+  <div class="counter-badge" id="counterBadge">-</div>
+</div>
+
+<div class="wrap">
+
+  <div class="panel">
+    <h2>เลือกงานที่จะนับ</h2>
+    <div class="control-row">
+      <div>
+        <label>สายรถวิ่ง</label>
+        <select id="routeLineSelect"><option value="">-- เลือกสาย --</option></select>
+      </div>
+      <div>
+        <label>วันที่ขาย</label>
+        <input type="date" id="saleDateInput">
+      </div>
+    </div>
+    <button class="btn btn-primary" id="loadBtn" onclick="loadEverything()">โหลดรายชื่อสาขา</button>
+
+    <div style="margin-top:12px;">
+      <label style="margin-bottom:6px;">สถานะรายสาย (วันที่เลือก)</label>
+      <div class="route-chip-row" id="routeChipRow"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="summaryPanel" style="display:none;">
+    <h2>ภาพรวมทั้งบริษัท (วันที่เลือก)</h2>
+    <div id="summaryBody"></div>
+  </div>
+
+  <div id="branchListWrap">
+    <div class="empty-hint">เลือกสายรถวิ่งและวันที่ แล้วกด "โหลดรายชื่อสาขา"</div>
+  </div>
+
+</div>
+
+<div class="footer-bar">
+  <div class="wrap">
+    <button class="btn btn-primary" id="saveAllBtn" onclick="saveAllBranches()" disabled>บันทึกทั้งสาย</button>
+  </div>
+</div>
+
+<script>
+const SESSION_KEY = 'staffSession';
+const CUP_KEYS = ['jumbo','large','small'];
+const CUP_LABELS = { jumbo:'แก้วจัมโบ้', large:'แก้วใหญ่', small:'แก้วเล็ก' };
+
+function getSession(){
+  try{ return JSON.parse(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || 'null'); }
+  catch(e){ return null; }
+}
+const session = getSession();
+if(!session){ window.location.href = 'login.html'; }
+
+const counterName = session ? (session.name + (session.nickname ? ' (' + session.nickname + ')' : '')) : '-';
+document.getElementById('counterBadge').textContent = counterName;
+
+function showToast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=>{ t.className = 'toast'; }, 2600);
+}
+
+/* ---------------- state ---------------- */
+// state.branches = { [branchCode]: { branchName, sizes: { jumbo:{referenceFound,referenceRemaining,countedGood,damaged,imageLink,savedAt}, ... } } }
+let state = { routeLine: '', saleDate: '', branches: {} };
+
+function draftKey(){ return 'glassCheckDraft_' + state.routeLine + '_' + state.saleDate; }
+
+function saveDraft(){
+  try{ localStorage.setItem(draftKey(), JSON.stringify(state.branches)); }catch(e){}
+}
+function loadDraft(){
+  try{
+    const raw = localStorage.getItem(draftKey());
+    return raw ? JSON.parse(raw) : {};
+  }catch(e){ return {}; }
+}
+
+/* ---------------- init route dropdown ---------------- */
+document.getElementById('saleDateInput').value = new Date().toISOString().slice(0,10);
+
+fetch(`${API_URL}?action=listRouteLines`)
+  .then(r=>r.json())
+  .then(res=>{
+    const sel = document.getElementById('routeLineSelect');
+    (res.routeLines || []).forEach(rl=>{
+      const opt = document.createElement('option');
+      opt.value = rl; opt.textContent = rl;
+      sel.appendChild(opt);
+    });
+  })
+  .catch(()=>showToast('โหลดรายชื่อสายรถวิ่งไม่สำเร็จ', true));
+
+/* ---------------- main load ---------------- */
+function loadEverything(){
+  const routeLine = document.getElementById('routeLineSelect').value;
+  const saleDate = document.getElementById('saleDateInput').value;
+  if(!routeLine || !saleDate){ showToast('กรุณาเลือกสายรถวิ่งและวันที่ก่อน', true); return; }
+
+  state.routeLine = routeLine;
+  state.saleDate = saleDate;
+
+  const btn = document.getElementById('loadBtn');
+  btn.disabled = true; btn.textContent = 'กำลังโหลด...';
+
+  Promise.all([
+    fetch(`${API_URL}?action=getCupCheckList&routeLine=${encodeURIComponent(routeLine)}&saleDate=${encodeURIComponent(saleDate)}`).then(r=>r.json()),
+    fetch(`${API_URL}?action=getCompanyGlassSummary&saleDate=${encodeURIComponent(saleDate)}`).then(r=>r.json()),
+    fetch(`${API_URL}?action=getGlassCheckStatusByRoute&saleDate=${encodeURIComponent(saleDate)}`).then(r=>r.json()),
+  ]).then(([listRes, summaryRes, statusRes])=>{
+    applyBranchList(listRes);
+    renderSummary(summaryRes);
+    renderRouteChips(statusRes, routeLine);
+    document.getElementById('saveAllBtn').disabled = false;
+  }).catch(()=>{
+    showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต', true);
+  }).finally(()=>{
+    btn.disabled = false; btn.textContent = 'โหลดรายชื่อสาขา';
+  });
+}
+
+function applyBranchList(listRes){
+  const draft = loadDraft();
+  const branches = {};
+  (listRes.branches || []).forEach(b=>{
+    const sizes = {};
+    CUP_KEYS.forEach(key=>{
+      const apiSize = b.sizes[key] || {};
+      const draftSize = (draft[b.branchCode] && draft[b.branchCode].sizes && draft[b.branchCode].sizes[key]) || {};
+      // ค่าที่เคย "บันทึกแล้วจริง" จาก API (countedGood ไม่ใช่ null) ถือเป็นความจริงล่าสุด เขียนทับ draft เสมอ
+      const hasSaved = apiSize.countedGood !== null && apiSize.countedGood !== undefined;
+      sizes[key] = {
+        referenceFound: apiSize.referenceFound,
+        referenceRemaining: apiSize.referenceRemaining || 0,
+        countedGood: hasSaved ? apiSize.countedGood : (draftSize.countedGood != null ? draftSize.countedGood : 0),
+        damaged: hasSaved ? apiSize.damaged : (draftSize.damaged != null ? draftSize.damaged : 0),
+        imageLink: hasSaved ? (apiSize.imageLink || '') : (draftSize.imageLink || ''),
+        savedAt: hasSaved ? apiSize.checkedAt : '',
+      };
+    });
+    branches[b.branchCode] = { branchName: b.branchName, sizes: sizes };
+  });
+  state.branches = branches;
+  renderBranchList();
+}
+
+/* ---------------- render: branch list ---------------- */
+function computeBranchStatus(sizes){
+  let anyWait = false, anyMismatch = false;
+  CUP_KEYS.forEach(key=>{
+    const s = sizes[key];
+    if(s.referenceFound === false) anyWait = true;
+    else if(Number(s.countedGood) !== Number(s.referenceRemaining)) anyMismatch = true;
+  });
+  if(anyWait) return { cls:'status-wait', label:'รอข้อมูลขาย' };
+  if(anyMismatch) return { cls:'status-mismatch', label:'มีไม่ตรง' };
+  return { cls:'status-ok', label:'ตรงทั้งหมด' };
+}
+
+function renderBranchList(){
+  const wrap = document.getElementById('branchListWrap');
+  const codes = Object.keys(state.branches);
+  if(!codes.length){ wrap.innerHTML = '<div class="empty-hint">ไม่พบสาขาในสายรถวิ่งนี้</div>'; return; }
+
+  wrap.innerHTML = '';
+  codes.forEach(branchCode=>{
+    const b = state.branches[branchCode];
+    const overall = computeBranchStatus(b.sizes);
+
+    const card = document.createElement('div');
+    card.className = 'branch-card';
+    card.dataset.branch = branchCode;
+
+    const head = document.createElement('div');
+    head.className = 'branch-head';
+    head.innerHTML =
+      `<b>${branchCode} - ${b.branchName}</b>` +
+      `<span class="status-badge ${overall.cls}">${overall.label}</span>` +
+      `<span class="branch-chevron">▾</span>`;
+    head.addEventListener('click', ()=> card.classList.toggle('open'));
+    card.appendChild(head);
+
+    const body = document.createElement('div');
+    body.className = 'branch-body';
+
+    CUP_KEYS.forEach(key=>{
+      const s = b.sizes[key];
+      const row = document.createElement('div');
+      row.className = 'size-row';
+      row.dataset.size = key;
+
+      const refHtml = s.referenceFound === false
+        ? `<span class="ref-wait">รอ</span>`
+        : `<span class="ref-val">แจ้งคงเหลือ: <span class="ref-num">${s.referenceRemaining}</span> ใบ</span>`;
+
+      row.innerHTML =
+        `<div class="size-row-head"><b>${CUP_LABELS[key]}</b>${refHtml}</div>` +
+        `<div class="size-inputs">` +
+          `<div class="field"><label>นับจริงได้</label><input type="number" min="0" class="in-good" value="${s.countedGood}"></div>` +
+          `<div class="field"><label>เสีย</label><input type="number" min="0" class="in-damaged" value="${s.damaged}"></div>` +
+        `</div>` +
+        `<div class="row-status"></div>` +
+        (s.imageLink ? `<div class="attach-row">แนบรูปแล้ว <a class="attach-link" href="${s.imageLink}" target="_blank">ดูรูป</a></div>` : `<div class="attach-row" style="display:none;">
+           <label>แนบรูปใบคืนแก้ว (กรณีนับไม่ตรง)</label>
+           <input type="file" accept="image/*" class="in-image">
+         </div>`);
+
+      body.appendChild(row);
+
+      row.querySelector('.in-good').addEventListener('input', ()=> onFieldChange(branchCode));
+      row.querySelector('.in-damaged').addEventListener('input', ()=> onFieldChange(branchCode));
+      const fileInput = row.querySelector('.in-image');
+      if(fileInput){
+        fileInput.addEventListener('change', (e)=> handleImageUpload(e, branchCode));
+      }
+    });
+
+    const savedNote = document.createElement('div');
+    savedNote.className = 'saved-note';
+    savedNote.textContent = '';
+    body.appendChild(savedNote);
+
+    const actions = document.createElement('div');
+    actions.className = 'branch-actions';
+    actions.innerHTML = `<button class="btn btn-outline btn-small" type="button">บันทึกสาขานี้</button>`;
+    actions.querySelector('button').addEventListener('click', ()=> saveOneBranch(branchCode));
+    body.appendChild(actions);
+
+    card.appendChild(body);
+    wrap.appendChild(card);
+
+    refreshRowStatuses(card, branchCode);
+  });
+}
+
+function refreshRowStatuses(card, branchCode){
+  const b = state.branches[branchCode];
+  CUP_KEYS.forEach(key=>{
+    const row = card.querySelector(`.size-row[data-size="${key}"]`);
+    if(!row) return;
+    const s = b.sizes[key];
+    const good = +row.querySelector('.in-good').value || 0;
+    const statusEl = row.querySelector('.row-status');
+    const attachRow = row.querySelector('.attach-row');
+    if(s.referenceFound === false){
+      statusEl.textContent = 'รอข้อมูลใบขายวันนี้';
+      statusEl.style.color = 'var(--red)';
+      if(attachRow && !s.imageLink) attachRow.style.display = 'none';
+    } else if(good === Number(s.referenceRemaining)){
+      statusEl.textContent = '✓ ตรงกับที่แจ้ง';
+      statusEl.style.color = 'var(--green)';
+      if(attachRow && !s.imageLink) attachRow.style.display = 'none';
+    } else {
+      statusEl.textContent = '⚠ ไม่ตรง (' + good + ' vs ' + s.referenceRemaining + ')';
+      statusEl.style.color = 'var(--orange)';
+      if(attachRow && !s.imageLink) attachRow.style.display = 'block';
+    }
+  });
+}
+
+function onFieldChange(branchCode){
+  const card = document.querySelector(`.branch-card[data-branch="${branchCode}"]`);
+  const b = state.branches[branchCode];
+  CUP_KEYS.forEach(key=>{
+    const row = card.querySelector(`.size-row[data-size="${key}"]`);
+    b.sizes[key].countedGood = +row.querySelector('.in-good').value || 0;
+    b.sizes[key].damaged = +row.querySelector('.in-damaged').value || 0;
+  });
+  refreshRowStatuses(card, branchCode);
+  updateBranchHeadStatus(card, branchCode);
+  saveDraft();
+}
+
+function updateBranchHeadStatus(card, branchCode){
+  const b = state.branches[branchCode];
+  const overall = computeBranchStatus(b.sizes);
+  const badge = card.querySelector('.status-badge');
+  badge.className = 'status-badge ' + overall.cls;
+  badge.textContent = overall.label;
+}
+
+/* ---------------- image upload ---------------- */
+function handleImageUpload(e, branchCode){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(){
+    const base64 = reader.result.split(',')[1];
+    showToast('กำลังอัปโหลดรูป...');
+    fetch(API_URL, {
+      method:'POST',
+      body: JSON.stringify({
+        action:'uploadCupCheckImage', image: base64, mimeType: file.type,
+        branchCode: branchCode, saleDate: state.saleDate,
+      })
+    }).then(r=>r.json()).then(res=>{
+      if(res.success){
+        // แนบรูปเดียวกันนี้ให้ทุกไซส์ที่ "ไม่ตรง" ของสาขานี้ (1 รูปครอบคลุมทั้งใบคืนแก้วของสาขา)
+        const b = state.branches[branchCode];
+        CUP_KEYS.forEach(key=>{
+          const s = b.sizes[key];
+          if(s.referenceFound !== false && Number(s.countedGood) !== Number(s.referenceRemaining)){
+            s.imageLink = res.url;
+          }
+        });
+        saveDraft();
+        showToast('แนบรูปสำเร็จ');
+        renderBranchList();
+      } else {
+        showToast('อัปโหลดรูปไม่สำเร็จ: ' + (res.error||''), true);
+      }
+    }).catch(()=> showToast('อัปโหลดรูปไม่สำเร็จ (เน็ตหลุด?)', true));
+  };
+  reader.readAsDataURL(file);
+}
+
+/* ---------------- save ---------------- */
+function buildRecordsForBranch(branchCode){
+  const b = state.branches[branchCode];
+  return CUP_KEYS.map(key=>{
+    const s = b.sizes[key];
+    return {
+      branchCode: branchCode, cupType: key,
+      referenceFound: s.referenceFound, referenceRemaining: s.referenceRemaining,
+      countedGood: s.countedGood, damaged: s.damaged, imageLink: s.imageLink || '',
+    };
+  });
+}
+
+function saveOneBranch(branchCode){
+  const records = buildRecordsForBranch(branchCode);
+  postSave(records, () => {
+    showToast('บันทึกสาขา ' + branchCode + ' เรียบร้อย');
+    const card = document.querySelector(`.branch-card[data-branch="${branchCode}"]`);
+    const note = card.querySelector('.saved-note');
+    if(note) note.textContent = 'บันทึกล่าสุด: ' + new Date().toLocaleTimeString('th-TH');
+  });
+}
+
+function saveAllBranches(){
+  const allRecords = [];
+  Object.keys(state.branches).forEach(bc=> allRecords.push(...buildRecordsForBranch(bc)));
+  if(!allRecords.length){ showToast('ไม่มีข้อมูลให้บันทึก', true); return; }
+  postSave(allRecords, () => {
+    showToast('บันทึกทั้งสายเรียบร้อย (' + Object.keys(state.branches).length + ' สาขา)');
+    document.querySelectorAll('.saved-note').forEach(n=> n.textContent = 'บันทึกล่าสุด: ' + new Date().toLocaleTimeString('th-TH'));
+  });
+}
+
+function postSave(records, onSuccess){
+  fetch(API_URL, {
+    method:'POST',
+    body: JSON.stringify({
+      action:'saveCupCheck',
+      data: { saleDate: state.saleDate, counter: counterName, records: records }
+    })
+  }).then(r=>r.json()).then(res=>{
+    if(res.success){
+      onSuccess();
+      // รีเฟรชสถานะรายสายให้ตรงล่าสุดหลังบันทึก (ไม่ต้องโหลดทั้งหน้าใหม่)
+      fetch(`${API_URL}?action=getGlassCheckStatusByRoute&saleDate=${encodeURIComponent(state.saleDate)}`)
+        .then(r=>r.json()).then(statusRes=> renderRouteChips(statusRes, state.routeLine)).catch(()=>{});
+    } else {
+      showToast('บันทึกไม่สำเร็จ: ' + (res.error||'ไม่ทราบสาเหตุ'), true);
+    }
+  }).catch(()=> showToast('บันทึกไม่สำเร็จ (เน็ตหลุด?) ข้อมูลยังอยู่ในเครื่อง ลองใหม่ได้', true));
+}
+
+/* ---------------- summary & route chips ---------------- */
+function renderSummary(res){
+  const panel = document.getElementById('summaryPanel');
+  const body = document.getElementById('summaryBody');
+  if(!res || !res.ready){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  let html = '';
+  CUP_KEYS.forEach(key=>{
+    const sz = res.sizes[key];
+    const ok = sz.total >= sz.target;
+    html += `<div class="sum-row"><span>${CUP_LABELS[key]}</span>` +
+      `<b class="${ok ? 'sum-ok' : 'sum-warn'}">${sz.total} / ${sz.target} ใบ</b></div>`;
+  });
+  html += `<div class="sum-caption">ข้อมูลจากใบขายครบแล้ว ${res.reportedBranches} / ${res.totalBranches} สาขา</div>`;
+  body.innerHTML = html;
+}
+
+function renderRouteChips(res, activeRoute){
+  const wrap = document.getElementById('routeChipRow');
+  wrap.innerHTML = '';
+  (res.routes || []).forEach(r=>{
+    const chip = document.createElement('div');
+    chip.className = 'route-chip' + (r.done ? ' done' : '') + (r.routeLine === activeRoute ? ' active' : '');
+    chip.textContent = `${r.done ? '✅' : '⚪'} ${r.routeLine} (${r.checkedBranches}/${r.totalBranches})`;
+    wrap.appendChild(chip);
+  });
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
