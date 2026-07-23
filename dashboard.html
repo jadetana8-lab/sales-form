@@ -111,11 +111,11 @@
       <div class="menu-text"><b>ตรวจนับแก้ว</b><span>สำหรับแผนกแก้ว</span></div>
       <span class="chev">›</span>
     </a>
-    <div class="menu-item disabled" onclick="comingSoon()">
+    <a href="sales_report.html" class="menu-item" id="salesReportMenuItem">
       <div class="menu-icon" style="background:#FBEBD4;">📊</div>
       <div class="menu-text"><b>รายงานยอดขาย</b><span>ดูสรุปยอดย้อนหลัง</span></div>
-      <span class="soon-badge">เร็วๆ นี้</span>
-    </div>
+      <span class="chev">›</span>
+    </a>
     <div class="menu-item disabled" onclick="comingSoon()">
       <div class="menu-icon" style="background:#F3E6FB;">📰</div>
       <div class="menu-text"><b>ข่าวสาร</b><span>ประกาศและข่าวสาร</span></div>
@@ -162,6 +162,13 @@ if(!session){
   if(allowedGlassCheckLevels.indexOf(level) === -1){
     const glassMenu = document.getElementById('glassCheckMenuItem');
     if(glassMenu) glassMenu.style.display = 'none';
+  }
+
+  // เมนู "รายงานยอดขาย" จำกัดเฉพาะระดับสิทธิ์ 1,2,3,4 (ไม่จำกัด) และ 5 (หัวหน้าสาย เห็นทุกสาย)
+  const allowedReportLevels = [1, 2, 3, 4, 5];
+  if(allowedReportLevels.indexOf(level) === -1){
+    const reportMenu = document.getElementById('salesReportMenuItem');
+    if(reportMenu) reportMenu.style.display = 'none';
   }
 }
 

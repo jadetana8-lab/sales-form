@@ -138,11 +138,11 @@ function getSession(){
 const session = getSession();
 if(!session){ window.location.href = 'login.html'; }
 
-// จำกัดสิทธิ์เข้าหน้านี้เฉพาะระดับ 1,2,3,4 (ไม่จำกัด), 5 (หัวหน้าสาย เห็นทุกสายตามที่ตกลง), 7 (Viewer)
-// ระดับ 6 (พนักงานทั่วไป) และ 8 (แผนกแก้ว) ไม่ควรเห็นหน้านี้ — session เก่าไม่มี permissionLevel
-// จะ default เป็นระดับ 6 และถูกบล็อกเช่นกัน จนกว่าจะ logout แล้ว login ใหม่
+// จำกัดสิทธิ์เข้าหน้านี้เฉพาะระดับ 1,2,3,4 (ไม่จำกัด), 5 (หัวหน้าสาย เห็นทุกสายตามที่ตกลง)
+// ระดับ 6 (พนักงานทั่วไป), 7 (Viewer), 8 (แผนกแก้ว) ไม่ควรเห็นหน้านี้ — session เก่าไม่มี
+// permissionLevel จะ default เป็นระดับ 6 และถูกบล็อกเช่นกัน จนกว่าจะ logout แล้ว login ใหม่
 if(session){
-  const allowedLevels = [1, 2, 3, 4, 5, 7];
+  const allowedLevels = [1, 2, 3, 4, 5];
   const level = session.permissionLevel || 6;
   if(allowedLevels.indexOf(level) === -1){
     alert('คุณไม่มีสิทธิ์เข้าหน้านี้ กรุณาติดต่อแอดมินหากคิดว่านี่คือข้อผิดพลาด');
