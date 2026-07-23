@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>รายงานยอดขาย - ระบบพนักงาน</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D5FA8">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{
+    --ink:#1B2B29; --paper:#EEF5FC; --card:#FFFFFF;
+    --teal:#1D5FA8; --teal-dark:#123A66; --teal-soft:#DCEAFB;
+    --line:#DDD6C7; --red:#B3382C; --red-soft:#FBE7E3;
+    --orange:#C97A1B; --orange-soft:#FBEBD4;
+    --green:#2F8F5B; --green-soft:#E5F3EA; --muted:#7A756A; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Noto Sans Thai',sans-serif; background:var(--paper); color:var(--ink); padding-bottom:40px; }
+
+  .topbar{ background:var(--teal); padding:16px 16px 18px; display:flex; align-items:center; gap:10px; position:sticky; top:0; z-index:20; }
+  .back-btn{ color:#fff; text-decoration:none; font-size:20px; line-height:1; padding:4px 6px; }
+  .topbar h1{ color:#fff; font-family:'Kanit',sans-serif; font-size:17px; margin:0; flex:1; }
+
+  .wrap{ max-width:900px; margin:0 auto; padding:14px 14px 0; }
+
+  .panel{ background:var(--card); border-radius:var(--radius); padding:16px; margin-bottom:14px; box-shadow:0 1px 3px rgba(20,30,25,.06); }
+  .panel h2{ font-family:'Kanit',sans-serif; font-size:15px; margin:0 0 12px; color:var(--teal-dark); }
+
+  .control-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+  .control-row > div{ flex:1; min-width:150px; }
+  label{ font-size:11.5px; color:var(--muted); display:block; margin-bottom:4px; }
+  input[type=date]{
+    width:100%; border:1.5px solid var(--line); border-radius:9px; padding:9px 10px;
+    font-size:14px; font-family:'Noto Sans Thai',sans-serif; background:#fff;
+  }
+  input:focus{ outline:none; border-color:var(--teal); }
+
+  .btn{
+    border:none; border-radius:10px; padding:11px 16px; font-family:'Noto Sans Thai',sans-serif;
+    font-weight:700; font-size:13.5px; cursor:pointer; white-space:nowrap;
+  }
+  .btn-primary{ background:var(--teal); color:#fff; }
+  .btn-outline{ background:#fff; color:var(--teal); border:1.5px solid var(--teal); }
+  .btn:disabled{ opacity:.5; cursor:default; }
+
+  .export-row{ display:flex; gap:8px; margin-top:10px; }
+  .export-row .btn{ flex:1; }
+
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  th, td{ padding:8px 10px; text-align:right; border-bottom:1px solid var(--line); white-space:nowrap; }
+  th:first-child, td:first-child{ text-align:left; }
+  th:nth-child(2), td:nth-child(2){ text-align:left; }
+  th{ background:#F5F2EA; color:var(--teal-dark); font-family:'Kanit',sans-serif; font-weight:600; position:sticky; top:0; }
+  .table-scroll{ overflow-x:auto; }
+
+  .tier-A{ color:var(--green); font-weight:700; }
+  .tier-B{ color:var(--teal); font-weight:700; }
+  .tier-none{ color:var(--muted); }
+  .tier-wait{ color:var(--orange); font-weight:700; }
+
+  .badge{ font-size:10.5px; font-weight:700; padding:3px 9px; border-radius:20px; white-space:nowrap; }
+  .badge-orange{ background:var(--orange-soft); color:var(--orange); }
+  .badge-red{ background:var(--red-soft); color:var(--red); }
+
+  .empty-hint{ text-align:center; color:var(--muted); font-size:13px; padding:20px 0; }
+  canvas{ max-width:100%; }
+
+  .summary-cards{ display:grid; grid-template-columns:repeat(auto-fit, minmax(140px,1fr)); gap:10px; margin-bottom:14px; }
+  .summary-card{ background:var(--card); border-radius:12px; padding:12px 14px; box-shadow:0 1px 3px rgba(20,30,25,.06); }
+  .summary-card .label{ font-size:11px; color:var(--muted); }
+  .summary-card .value{ font-family:'Kanit',sans-serif; font-size:20px; color:var(--teal-dark); margin-top:2px; }
+
+  .toast{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    background:var(--teal-dark); color:#fff; padding:10px 18px; border-radius:30px;
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:85%; text-align:center;
+  }
+  .toast.show{ opacity:1; }
+  .toast.err{ background:var(--red); }
+
+  @media print {
+    .no-print{ display:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <a href="dashboard.html" class="back-btn">←</a>
+  <h1>รายงานยอดขาย</h1>
+</div>
+
+<div class="wrap" id="reportRoot">
+
+  <div class="panel no-print">
+    <h2>เลือกช่วงวันที่</h2>
+    <div class="control-row">
+      <div>
+        <label>จากวันที่</label>
+        <input type="date" id="fromDate">
+      </div>
+      <div>
+        <label>ถึงวันที่</label>
+        <input type="date" id="toDate">
+      </div>
+      <button class="btn btn-primary" id="loadBtn" onclick="loadReport()">ดูรายงาน</button>
+    </div>
+    <div class="export-row">
+      <button class="btn btn-outline" id="exportCsvBtn" onclick="exportCsv()" disabled>⬇️ Export CSV</button>
+      <button class="btn btn-outline" id="exportPdfBtn" onclick="exportPdf()" disabled>📄 Export PDF</button>
+    </div>
+  </div>
+
+  <div id="reportBody">
+    <div class="empty-hint">เลือกช่วงวันที่แล้วกด "ดูรายงาน"</div>
+  </div>
+
+</div>
+
+<script>
+const SESSION_KEY = 'staffSession';
+
+function getSession(){
+  try{ return JSON.parse(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || 'null'); }
+  catch(e){ return null; }
+}
+const session = getSession();
+if(!session){ window.location.href = 'login.html'; }
+
+// จำกัดสิทธิ์เข้าหน้านี้เฉพาะระดับ 1,2,3,4 (ไม่จำกัด), 5 (หัวหน้าสาย เห็นทุกสายตามที่ตกลง), 7 (Viewer)
+// ระดับ 6 (พนักงานทั่วไป) และ 8 (แผนกแก้ว) ไม่ควรเห็นหน้านี้ — session เก่าไม่มี permissionLevel
+// จะ default เป็นระดับ 6 และถูกบล็อกเช่นกัน จนกว่าจะ logout แล้ว login ใหม่
+if(session){
+  const allowedLevels = [1, 2, 3, 4, 5, 7];
+  const level = session.permissionLevel || 6;
+  if(allowedLevels.indexOf(level) === -1){
+    alert('คุณไม่มีสิทธิ์เข้าหน้านี้ กรุณาติดต่อแอดมินหากคิดว่านี่คือข้อผิดพลาด');
+    window.location.href = 'dashboard.html';
+  }
+}
+
+function showToast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=>{ t.className = 'toast'; }, 2600);
+}
+
+// default ช่วงวันที่: 7 วันล่าสุดรวมวันนี้
+(function initDates(){
+  const today = new Date();
+  const weekAgo = new Date();
+  weekAgo.setDate(today.getDate() - 6);
+  document.getElementById('toDate').value = today.toISOString().slice(0,10);
+  document.getElementById('fromDate').value = weekAgo.toISOString().slice(0,10);
+})();
+
+let lastReportData = null;
+let lastGlassData = null;
+let chartInstance = null;
+
+function loadReport(){
+  const fromDate = document.getElementById('fromDate').value;
+  const toDate = document.getElementById('toDate').value;
+  if(!fromDate || !toDate){ showToast('กรุณาเลือกวันที่ให้ครบ', true); return; }
+  if(fromDate > toDate){ showToast('วันที่เริ่มต้องไม่มากกว่าวันที่สิ้นสุด', true); return; }
+
+  const btn = document.getElementById('loadBtn');
+  btn.disabled = true; btn.textContent = 'กำลังโหลด...';
+
+  Promise.all([
+    fetch(`${API_URL}?action=getSalesReport&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`).then(r=>r.json()),
+    fetch(`${API_URL}?action=getGlassCheckReportRange&fromDate=${encodeURIComponent(fromDate)}&toDate=${encodeURIComponent(toDate)}`).then(r=>r.json()),
+  ]).then(([salesRes, glassRes])=>{
+    if(!salesRes.ready){ showToast(salesRes.error || 'โหลดรายงานไม่สำเร็จ', true); return; }
+    lastReportData = salesRes;
+    lastGlassData = glassRes.ready ? glassRes : { mismatches: [] };
+    renderReport(salesRes, lastGlassData);
+    document.getElementById('exportCsvBtn').disabled = false;
+    document.getElementById('exportPdfBtn').disabled = false;
+  }).catch(()=>{
+    showToast('โหลดข้อมูลไม่สำเร็จ ตรวจสอบอินเทอร์เน็ต', true);
+  }).finally(()=>{
+    btn.disabled = false; btn.textContent = 'ดูรายงาน';
+  });
+}
+
+function tierClass(tier){
+  if(tier === 'A') return 'tier-A';
+  if(tier === 'B') return 'tier-B';
+  if(tier === 'ข้อมูลยังไม่ครบ') return 'tier-wait';
+  return 'tier-none';
+}
+
+function renderReport(sales, glass){
+  const body = document.getElementById('reportBody');
+  const daily = sales.daily || [];
+  const branches = sales.branches || [];
+  const issues = sales.issues || [];
+  const mismatches = (glass && glass.mismatches) || [];
+
+  if(!daily.length && !branches.length){
+    body.innerHTML = '<div class="empty-hint">ไม่พบข้อมูลยอดขายในช่วงวันที่ที่เลือก</div>';
+    return;
+  }
+
+  // สรุปการ์ดด้านบน
+  const totalRevenue = branches.reduce((s,b)=>s+b.totalRevenue, 0);
+  const totalCups = branches.reduce((s,b)=>s+b.jumbo+b.large+b.small, 0);
+  const daysWithIssues = new Set(issues.map(i=>i.saleDate)).size;
+
+  let html = '';
+  html += `<div class="summary-cards">
+    <div class="summary-card"><div class="label">ยอดขายรวม (บาท)</div><div class="value">${totalRevenue.toLocaleString()}</div></div>
+    <div class="summary-card"><div class="label">แก้วขายรวม (ใบ)</div><div class="value">${totalCups.toLocaleString()}</div></div>
+    <div class="summary-card"><div class="label">จำนวนวันในรายงาน</div><div class="value">${daily.length}</div></div>
+    <div class="summary-card"><div class="label">วันที่มีรายการติดปัญหา</div><div class="value">${daysWithIssues}</div></div>
+  </div>`;
+
+  // กราฟรายวัน
+  html += `<div class="panel"><h2>ยอดขายรายวัน (บาท)</h2><canvas id="dailyChart" height="90"></canvas></div>`;
+
+  // ตารางรายวัน
+  html += `<div class="panel"><h2>ตารางรายวัน</h2><div class="table-scroll"><table><thead><tr>
+    <th>วันที่</th><th>จัมโบ้</th><th>ใหญ่</th><th>เล็ก</th><th>ยอดขาย(บาท)</th><th>สาขาที่รายงาน</th><th>ค่าคอม</th>
+  </tr></thead><tbody>`;
+  daily.forEach(d=>{
+    html += `<tr><td>${d.saleDate}</td><td>${d.jumbo}</td><td>${d.large}</td><td>${d.small}</td>` +
+      `<td>${d.eligibleRevenue.toLocaleString()}</td><td>${d.reportedBranches}/${d.totalBranches}</td>` +
+      `<td class="${tierClass(d.commissionTier)}">${d.commissionTier}</td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+
+  // ตารางรายสาขา
+  html += `<div class="panel"><h2>ตารางรายสาขา (สรุปทั้งช่วง)</h2><div class="table-scroll"><table><thead><tr>
+    <th>รหัส</th><th>สาขา</th><th>จัมโบ้</th><th>ใหญ่</th><th>เล็ก</th><th>เงินสด</th><th>โอน(ใบ)</th><th>ยอดขาย(บาท)</th>
+  </tr></thead><tbody>`;
+  branches.slice().sort((a,b)=>b.totalRevenue - a.totalRevenue).forEach(b=>{
+    html += `<tr><td>${b.branchCode}</td><td>${b.branchName}</td><td>${b.jumbo}</td><td>${b.large}</td><td>${b.small}</td>` +
+      `<td>${Math.round(b.cash).toLocaleString()}</td><td>${b.transfer}</td><td>${b.totalRevenue.toLocaleString()}</td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+
+  // ตารางรายการติดปัญหา
+  html += `<div class="panel"><h2>รายการติดสถานะส้ม/แดง</h2>`;
+  if(!issues.length){
+    html += `<div class="empty-hint">ไม่มีรายการติดปัญหาในช่วงนี้</div>`;
+  } else {
+    html += `<div class="table-scroll"><table><thead><tr><th>วันที่</th><th>สาขา</th><th>สถานะ</th><th>สาเหตุ</th></tr></thead><tbody>`;
+    issues.forEach(i=>{
+      const badgeClass = i.flagStatus === 'orange' ? 'badge-orange' : 'badge-red';
+      const badgeLabel = i.flagStatus === 'orange' ? 'ส้ม' : (i.flagStatus === 'red_override' ? 'แดง(อนุมัติแล้ว)' : 'แดง');
+      html += `<tr><td>${i.saleDate}</td><td>${i.branchCode} ${i.branchName}</td>` +
+        `<td><span class="badge ${badgeClass}">${badgeLabel}</span></td>` +
+        `<td>${i.flagReasons || i.overrideNote || '-'}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  html += `</div>`;
+
+  // ตารางตรวจนับแก้วไม่ตรง
+  html += `<div class="panel"><h2>ตรวจนับแก้ว — รายการไม่ตรง</h2>`;
+  if(!mismatches.length){
+    html += `<div class="empty-hint">ไม่มีรายการนับไม่ตรงในช่วงนี้</div>`;
+  } else {
+    html += `<div class="table-scroll"><table><thead><tr><th>วันที่</th><th>สาขา</th><th>ไซส์</th><th>แจ้งคงเหลือ</th><th>นับจริงได้</th></tr></thead><tbody>`;
+    mismatches.forEach(m=>{
+      html += `<tr><td>${m.saleDate}</td><td>${m.branchCode} ${m.branchName}</td><td>${m.cupType}</td>` +
+        `<td>${m.reference}</td><td>${m.countedGood}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  html += `</div>`;
+
+  body.innerHTML = html;
+
+  // วาดกราฟหลัง insert DOM แล้วเท่านั้น (canvas ต้องมีอยู่จริงก่อน)
+  if(chartInstance){ chartInstance.destroy(); chartInstance = null; }
+  const ctx = document.getElementById('dailyChart');
+  if(ctx && daily.length && window.Chart){
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: daily.map(d=>d.saleDate),
+        datasets: [{
+          label: 'ยอดขายรวม (บาท)',
+          data: daily.map(d=>d.eligibleRevenue),
+          borderColor: '#1D5FA8',
+          backgroundColor: 'rgba(29,95,168,0.12)',
+          fill: true,
+          tension: 0.25,
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+      }
+    });
+  }
+}
+
+/* ---------------- Export ---------------- */
+function exportCsv(){
+  if(!lastReportData){ showToast('กรุณาโหลดรายงานก่อน', true); return; }
+  const daily = lastReportData.daily || [];
+  const branches = lastReportData.branches || [];
+  const issues = lastReportData.issues || [];
+  const mismatches = (lastGlassData && lastGlassData.mismatches) || [];
+
+  let csv = 'รายงานยอดขาย ' + lastReportData.fromDate + ' ถึง ' + lastReportData.toDate + '\r\n\r\n';
+
+  csv += 'ตารางรายวัน\r\n';
+  csv += 'วันที่,จัมโบ้,ใหญ่,เล็ก,ยอดขาย(บาท),สาขาที่รายงาน,รวมสาขา,ค่าคอม\r\n';
+  daily.forEach(d=>{
+    csv += [d.saleDate, d.jumbo, d.large, d.small, d.eligibleRevenue, d.reportedBranches, d.totalBranches, d.commissionTier].join(',') + '\r\n';
+  });
+
+  csv += '\r\nตารางรายสาขา\r\n';
+  csv += 'รหัส,สาขา,จัมโบ้,ใหญ่,เล็ก,เงินสด,โอน(ใบ),ยอดขาย(บาท)\r\n';
+  branches.forEach(b=>{
+    csv += [b.branchCode, '"'+b.branchName+'"', b.jumbo, b.large, b.small, Math.round(b.cash), b.transfer, b.totalRevenue].join(',') + '\r\n';
+  });
+
+  csv += '\r\nรายการติดสถานะส้ม/แดง\r\n';
+  csv += 'วันที่,รหัสสาขา,สาขา,สถานะ,สาเหตุ\r\n';
+  issues.forEach(i=>{
+    csv += [i.saleDate, i.branchCode, '"'+i.branchName+'"', i.flagStatus, '"'+(i.flagReasons||i.overrideNote||'').replace(/"/g,'""')+'"'].join(',') + '\r\n';
+  });
+
+  csv += '\r\nตรวจนับแก้ว - รายการไม่ตรง\r\n';
+  csv += 'วันที่,รหัสสาขา,สาขา,ไซส์,แจ้งคงเหลือ,นับจริงได้\r\n';
+  mismatches.forEach(m=>{
+    csv += [m.saleDate, m.branchCode, '"'+m.branchName+'"', m.cupType, m.reference, m.countedGood].join(',') + '\r\n';
+  });
+
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'รายงานยอดขาย_' + lastReportData.fromDate + '_ถึง_' + lastReportData.toDate + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function exportPdf(){
+  if(!lastReportData){ showToast('กรุณาโหลดรายงานก่อน', true); return; }
+  const el = document.getElementById('reportRoot');
+  const opt = {
+    margin: 8,
+    filename: 'รายงานยอดขาย_' + lastReportData.fromDate + '_ถึง_' + lastReportData.toDate + '.pdf',
+    image: { type: 'jpeg', quality: 0.95 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+  };
+  document.querySelectorAll('.no-print').forEach(x=> x.style.display = 'none');
+  html2pdf().set(opt).from(el).save().then(()=>{
+    document.querySelectorAll('.no-print').forEach(x=> x.style.display = '');
+  }).catch(()=>{
+    document.querySelectorAll('.no-print').forEach(x=> x.style.display = '');
+    showToast('สร้าง PDF ไม่สำเร็จ', true);
+  });
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
