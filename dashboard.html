@@ -106,6 +106,11 @@
       <div class="menu-text"><b>ใบรายการขาย</b><span>บันทึกยอดขายประจำวัน</span></div>
       <span class="chev">›</span>
     </a>
+    <a href="quick_report.html" class="menu-item" id="quickReportMenuItem">
+      <div class="menu-icon" style="background:#E3F0FB;">⚡</div>
+      <div class="menu-text"><b>แจ้งยอด</b><span>แจ้งยอดขายด่วนก่อนกรอกใบขายทางการ</span></div>
+      <span class="chev">›</span>
+    </a>
     <a href="glass_check.html" class="menu-item" id="glassCheckMenuItem">
       <div class="menu-icon" style="background:var(--teal-soft);">🥤</div>
       <div class="menu-text"><b>ตรวจนับแก้ว</b><span>สำหรับแผนกแก้ว</span></div>
@@ -169,6 +174,13 @@ if(!session){
   if(allowedReportLevels.indexOf(level) === -1){
     const reportMenu = document.getElementById('salesReportMenuItem');
     if(reportMenu) reportMenu.style.display = 'none';
+  }
+
+  // เมนู "แจ้งยอด" จำกัดเฉพาะระดับสิทธิ์ 2 (Admin) และ 6 (พนักงานทั่วไป) ตามที่ตกลง
+  const allowedQuickReportLevels = [2, 6];
+  if(allowedQuickReportLevels.indexOf(level) === -1){
+    const quickMenu = document.getElementById('quickReportMenuItem');
+    if(quickMenu) quickMenu.style.display = 'none';
   }
 }
 

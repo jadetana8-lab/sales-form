@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>แจ้งยอด - ระบบพนักงาน</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1D5FA8">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@500;600;700&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+  :root{
+    --ink:#1B2B29; --paper:#EEF5FC; --card:#FFFFFF;
+    --teal:#1D5FA8; --teal-dark:#123A66; --teal-soft:#DCEAFB;
+    --line:#DDD6C7; --red:#B3382C; --red-soft:#FBE7E3;
+    --green:#2F8F5B; --green-soft:#E5F3EA; --muted:#7A756A; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; font-family:'Noto Sans Thai',sans-serif; background:var(--paper); color:var(--ink); padding-bottom:40px; }
+
+  .topbar{ background:var(--teal); padding:16px 16px 18px; display:flex; align-items:center; gap:10px; }
+  .back-btn{ color:#fff; text-decoration:none; font-size:20px; line-height:1; padding:4px 6px; }
+  .topbar h1{ color:#fff; font-family:'Kanit',sans-serif; font-size:17px; margin:0; flex:1; }
+
+  .wrap{ max-width:480px; margin:0 auto; padding:14px 14px 0; }
+
+  .panel{ background:var(--card); border-radius:var(--radius); padding:18px; margin-bottom:14px; box-shadow:0 1px 3px rgba(20,30,25,.06); }
+  .panel h2{ font-family:'Kanit',sans-serif; font-size:15px; margin:0 0 12px; color:var(--teal-dark); }
+
+  label{ font-size:12px; color:var(--muted); display:block; margin-bottom:5px; }
+  input[type=date], input[type=text], input[type=number]{
+    width:100%; border:1.5px solid var(--line); border-radius:10px; padding:11px 12px;
+    font-size:15px; font-family:'Noto Sans Thai',sans-serif; background:#fff; margin-bottom:14px;
+  }
+  input:focus{ outline:none; border-color:var(--teal); }
+  input:disabled{ background:#F2F0EA; color:var(--muted); }
+
+  .amount-input{ font-family:'Kanit',sans-serif; font-size:26px; text-align:center; font-weight:700; color:var(--teal-dark); }
+
+  .info-row{ display:flex; justify-content:space-between; align-items:center; background:var(--teal-soft); border-radius:10px; padding:10px 12px; margin-bottom:14px; font-size:13.5px; }
+  .info-row b{ font-family:'Kanit',sans-serif; }
+
+  .switch-row{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); margin-bottom:12px; }
+  .switch-row input{ width:auto; margin:0; }
+
+  .sub-box{ display:none; }
+  .sub-box.show{ display:block; }
+  .icon-btn{ border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:0 12px; cursor:pointer; font-size:15px; }
+
+  .branch-confirm{ background:var(--green-soft); color:var(--green); border-radius:8px; padding:8px 12px; font-size:13px; margin:-6px 0 14px; display:none; }
+  .branch-confirm.show{ display:block; }
+
+  .warn-text{ color:var(--red); font-size:12.5px; font-weight:600; margin:-6px 0 14px; }
+  .lock-note{ background:var(--red-soft); color:var(--red); border-radius:10px; padding:10px 12px; font-size:13px; margin-bottom:14px; }
+
+  .btn{
+    width:100%; border:none; border-radius:12px; padding:14px; font-family:'Noto Sans Thai',sans-serif;
+    font-weight:700; font-size:15px; cursor:pointer;
+  }
+  .btn-primary{ background:var(--teal); color:#fff; }
+  .btn-primary:disabled{ background:#B9C7DA; cursor:default; }
+
+  .saved-note{ text-align:center; font-size:12px; color:var(--muted); margin-top:10px; }
+
+  .toast{
+    position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    background:var(--teal-dark); color:#fff; padding:10px 18px; border-radius:30px;
+    font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50; max-width:85%; text-align:center;
+  }
+  .toast.show{ opacity:1; }
+  .toast.err{ background:var(--red); }
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <a href="dashboard.html" class="back-btn">←</a>
+  <h1>แจ้งยอด</h1>
+</div>
+
+<div class="wrap">
+
+  <div class="panel">
+    <h2>ข้อมูลการแจ้งยอด</h2>
+
+    <div class="info-row" id="ownBranchRow">
+      <span>สาขา</span>
+      <b id="ownBranchDisplay">-</b>
+    </div>
+
+    <label class="switch-row">
+      <input type="checkbox" id="substituteToggle">
+      ไปขายแทนสาขาอื่น (กรอกรหัสสาขาเอง)
+    </label>
+    <div class="sub-box" id="subBox">
+      <label>รหัสสาขาที่ไปขายแทน</label>
+      <div style="display:flex; gap:6px;">
+        <input id="subBranchCode" list="branchDatalist" placeholder="เช่น 007 หรือชื่อสาขา" style="flex:1; margin-bottom:0;">
+        <datalist id="branchDatalist"></datalist>
+      </div>
+      <div class="branch-confirm" id="subBranchConfirm"></div>
+    </div>
+
+    <label>วันที่</label>
+    <input type="date" id="saleDate">
+
+    <label>ยอดขายวันนี้ (บาท)</label>
+    <input type="number" inputmode="numeric" id="amountInput" class="amount-input" placeholder="0">
+
+    <div class="warn-text">⚠️ ยอดนี้เป็นยอดแจ้งด่วน ยังไม่ได้ผ่านการตรวจสอบหรือกรอกในใบรายการขายอย่างเป็นทางการ</div>
+
+    <div class="lock-note" id="lockNote" style="display:none;"></div>
+
+    <button class="btn btn-primary" id="saveBtn" onclick="saveReport()">บันทึกยอด</button>
+    <div class="saved-note" id="savedNote"></div>
+  </div>
+
+</div>
+
+<script>
+const SESSION_KEY = 'staffSession';
+
+function getSession(){
+  try{ return JSON.parse(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || 'null'); }
+  catch(e){ return null; }
+}
+const session = getSession();
+if(!session){ window.location.href = 'login.html'; }
+
+// จำกัดสิทธิ์เข้าหน้านี้เฉพาะระดับ 2 (Admin) และ 6 (พนักงานทั่วไป) ตามที่ตกลง
+if(session){
+  const allowedLevels = [2, 6];
+  const level = session.permissionLevel || 6;
+  if(allowedLevels.indexOf(level) === -1){
+    alert('คุณไม่มีสิทธิ์เข้าหน้านี้ กรุณาติดต่อแอดมินหากคิดว่านี่คือข้อผิดพลาด');
+    window.location.href = 'dashboard.html';
+  }
+}
+
+function showToast(msg, isErr){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isErr ? ' err' : '');
+  setTimeout(()=>{ t.className = 'toast'; }, 2600);
+}
+
+document.getElementById('ownBranchDisplay').textContent = (session.branchCode || '-') + ' - ' + (session.branch || '-');
+document.getElementById('saleDate').value = new Date().toISOString().slice(0,10);
+
+let resolvedBranchCode = session.branchCode || '';
+let resolvedBranchName = session.branch || '';
+
+/* ---------- ขายแทน ---------- */
+let branchListCache = [];
+fetch(`${API_URL}?action=listBranches`)
+  .then(r=>r.json())
+  .then(res=>{
+    branchListCache = res.branches || [];
+    const dl = document.getElementById('branchDatalist');
+    if(dl) dl.innerHTML = branchListCache.map(b=>`<option value="${b.branch}" label="${b.branchCode}">`).join('');
+  })
+  .catch(()=>{});
+
+document.getElementById('substituteToggle').addEventListener('change', function(){
+  document.getElementById('subBox').classList.toggle('show', this.checked);
+  document.getElementById('ownBranchRow').style.display = this.checked ? 'none' : 'flex';
+  const confirmBox = document.getElementById('subBranchConfirm');
+  confirmBox.classList.remove('show');
+  if(this.checked){
+    resolvedBranchCode = ''; resolvedBranchName = '';
+    document.getElementById('subBranchCode').value = '';
+  } else {
+    resolvedBranchCode = session.branchCode || '';
+    resolvedBranchName = session.branch || '';
+  }
+  loadExistingReport();
+});
+
+document.getElementById('subBranchCode').addEventListener('input', function(){
+  const raw = this.value.trim();
+  const matchByName = branchListCache.find(b => b.branch === raw);
+  if(matchByName){ this.value = matchByName.branchCode; }
+});
+
+document.getElementById('subBranchCode').addEventListener('change', function(){
+  let raw = this.value.trim();
+  const matchByName = branchListCache.find(b => b.branch === raw);
+  if(matchByName){ raw = matchByName.branchCode; this.value = raw; }
+  else if(/^\d+$/.test(raw) && raw.length < 3){ raw = raw.padStart(3, '0'); this.value = raw; }
+
+  const confirmBox = document.getElementById('subBranchConfirm');
+  if(!raw){ confirmBox.classList.remove('show'); resolvedBranchCode=''; resolvedBranchName=''; return; }
+
+  fetch(`${API_URL}?action=lookupBranch&branchCode=${encodeURIComponent(raw)}`)
+    .then(r=>r.json())
+    .then(res=>{
+      if(res.found){
+        resolvedBranchCode = res.branchCode;
+        resolvedBranchName = res.branch;
+        confirmBox.textContent = '✓ ' + res.branchCode + ' - ' + res.branch;
+        confirmBox.classList.add('show');
+        loadExistingReport();
+      } else {
+        resolvedBranchCode = ''; resolvedBranchName = '';
+        confirmBox.textContent = 'ไม่พบรหัสสาขานี้ กรุณาตรวจสอบอีกครั้ง';
+        confirmBox.className = 'branch-confirm show';
+        confirmBox.style.background = 'var(--red-soft)';
+        confirmBox.style.color = 'var(--red)';
+      }
+    })
+    .catch(()=>{ showToast('ค้นหาสาขาไม่สำเร็จ', true); });
+});
+
+/* ---------- โหลดค่าที่เคยแจ้งไว้ (ถ้ามี) + เช็คว่าล็อกแล้วหรือยัง ---------- */
+document.getElementById('saleDate').addEventListener('change', loadExistingReport);
+
+function loadExistingReport(){
+  const saleDate = document.getElementById('saleDate').value;
+  const lockNote = document.getElementById('lockNote');
+  const amountInput = document.getElementById('amountInput');
+  const saveBtn = document.getElementById('saveBtn');
+
+  if(!resolvedBranchCode || !saleDate){
+    amountInput.value = '';
+    lockNote.style.display = 'none';
+    return;
+  }
+
+  fetch(`${API_URL}?action=getQuickReport&branchCode=${encodeURIComponent(resolvedBranchCode)}&saleDate=${encodeURIComponent(saleDate)}`)
+    .then(r=>r.json())
+    .then(res=>{
+      amountInput.value = res.found ? res.amount : '';
+      if(res.locked){
+        lockNote.style.display = 'block';
+        lockNote.textContent = '🔒 สาขานี้มีใบรายการขายทางการของวันที่นี้แล้ว ไม่สามารถแก้ไข/บันทึกยอดด่วนซ้ำได้อีก';
+        amountInput.disabled = true;
+        saveBtn.disabled = true;
+      } else {
+        lockNote.style.display = 'none';
+        amountInput.disabled = false;
+        saveBtn.disabled = false;
+      }
+    })
+    .catch(()=>{});
+}
+loadExistingReport();
+
+/* ---------- บันทึก ---------- */
+function saveReport(){
+  const saleDate = document.getElementById('saleDate').value;
+  const amount = document.getElementById('amountInput').value;
+
+  if(!resolvedBranchCode){ showToast('กรุณาระบุสาขาให้ถูกต้องก่อน (ถ้าขายแทน ต้องยืนยันสาขาก่อน)', true); return; }
+  if(!saleDate){ showToast('กรุณาเลือกวันที่', true); return; }
+  if(amount === '' || isNaN(Number(amount)) || Number(amount) < 0){ showToast('กรุณากรอกยอดขายเป็นตัวเลข', true); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'saveQuickReport',
+      data: {
+        branchCode: resolvedBranchCode, saleDate: saleDate, amount: Number(amount),
+        reporterName: session.name + (session.nickname ? ' (' + session.nickname + ')' : ''),
+      }
+    })
+  })
+    .then(r=>r.json())
+    .then(res=>{
+      btn.disabled = false; btn.textContent = 'บันทึกยอด';
+      if(res.success){
+        showToast('บันทึกยอดแจ้งด่วนเรียบร้อย');
+        document.getElementById('savedNote').textContent = 'บันทึกล่าสุด: ' + new Date().toLocaleTimeString('th-TH');
+        loadExistingReport();
+      } else {
+        showToast(res.error || 'บันทึกไม่สำเร็จ', true);
+        if(res.error && res.error.indexOf('ใบรายการขายทางการ') !== -1) loadExistingReport();
+      }
+    })
+    .catch(()=>{
+      btn.disabled = false; btn.textContent = 'บันทึกยอด';
+      showToast('บันทึกไม่สำเร็จ (เน็ตหลุด?)', true);
+    });
+}
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
