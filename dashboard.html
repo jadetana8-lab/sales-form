@@ -106,7 +106,7 @@
       <div class="menu-text"><b>ใบรายการขาย</b><span>บันทึกยอดขายประจำวัน</span></div>
       <span class="chev">›</span>
     </a>
-    <a href="glass_check.html" class="menu-item">
+    <a href="glass_check.html" class="menu-item" id="glassCheckMenuItem">
       <div class="menu-icon" style="background:var(--teal-soft);">🥤</div>
       <div class="menu-text"><b>ตรวจนับแก้ว</b><span>สำหรับแผนกแก้ว</span></div>
       <span class="chev">›</span>
@@ -153,6 +153,16 @@ if(!session){
   document.getElementById('profileName').textContent = session.name + (session.nickname ? ' (' + session.nickname + ')' : '');
   document.getElementById('profileBranch').textContent = session.branch || '-';
   document.getElementById('avatarInitial').textContent = (session.nickname || session.name || '-').charAt(0);
+
+  // เมนู "ตรวจนับแก้ว" จำกัดเฉพาะระดับสิทธิ์ 1,2,3,4 (ไม่จำกัด) และ 8 (แผนกแก้ว)
+  // session เก่าที่ยังไม่มี permissionLevel (login ก่อนอัปเดตระบบสิทธิ์) จะ default เป็นระดับ 6
+  // (พนักงานทั่วไป) จึงถูกซ่อนเมนูนี้เช่นกัน จนกว่าจะ logout แล้ว login ใหม่
+  const allowedGlassCheckLevels = [1, 2, 3, 4, 8];
+  const level = session.permissionLevel || 6;
+  if(allowedGlassCheckLevels.indexOf(level) === -1){
+    const glassMenu = document.getElementById('glassCheckMenuItem');
+    if(glassMenu) glassMenu.style.display = 'none';
+  }
 }
 
 function logout(){

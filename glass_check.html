@@ -183,6 +183,19 @@ function getSession(){
 const session = getSession();
 if(!session){ window.location.href = 'login.html'; }
 
+// จำกัดสิทธิ์เข้าหน้านี้เฉพาะระดับ 1,2,3,4 (ไม่จำกัด) และ 8 (แผนกแก้ว) เท่านั้น
+// กันกรณีมีคนรู้ลิงก์ตรงแล้วเข้าได้ทั้งที่เมนูใน dashboard ถูกซ่อนไว้แล้ว
+// session เก่าที่ยังไม่มี permissionLevel (login ก่อนอัปเดตระบบสิทธิ์) จะ default เป็นระดับ 6
+// และถูกบล็อกเช่นกัน จนกว่าจะ logout แล้ว login ใหม่เพื่อรับค่าสิทธิ์ล่าสุด
+if(session){
+  const allowedLevels = [1, 2, 3, 4, 8];
+  const level = session.permissionLevel || 6;
+  if(allowedLevels.indexOf(level) === -1){
+    alert('คุณไม่มีสิทธิ์เข้าหน้านี้ กรุณาติดต่อแอดมินหากคิดว่านี่คือข้อผิดพลาด');
+    window.location.href = 'dashboard.html';
+  }
+}
+
 const counterName = session ? (session.name + (session.nickname ? ' (' + session.nickname + ')' : '')) : '-';
 document.getElementById('counterBadge').textContent = counterName;
 

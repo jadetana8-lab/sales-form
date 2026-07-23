@@ -66,6 +66,9 @@
   .err-msg{ color:#B3382C; font-size:12.5px; margin-top:10px; text-align:center; display:none; }
   .err-msg.show{ display:block; }
   .foot-link{ text-align:center; margin-top:18px; font-size:12px; color:#DCEAFB; }
+  .greet{ font-family:'Kanit',sans-serif; font-size:16px; color:var(--teal-dark); margin-bottom:16px; text-align:center; }
+  .back-link{ text-align:center; margin-top:14px; font-size:12.5px; color:var(--teal); cursor:pointer; text-decoration:underline; }
+  .card input[type=text].pin{ letter-spacing:6px; text-align:center; font-family:'Kanit',sans-serif; font-size:20px; }
 </style>
 </head>
 <body>
@@ -80,15 +83,32 @@
 <div class="wrap">
   <img class="logo-box" src="icon-192.png" alt="logo">
   <h2>เข้าสู่ระบบ</h2>
-  <p style="opacity:.5; font-size:10px; margin:-18px 0 18px;">v5-login-debug-2026-07-14</p>
+  <p style="opacity:.5; font-size:10px; margin:-18px 0 18px;">v6-login-auth-2026-07-23</p>
   <div class="card">
     <label>รหัสพนักงาน</label>
-    <input type="text" id="empCode" placeholder="เช่น 0001" inputmode="numeric" autocomplete="off">
+    <input type="text" id="empCode" placeholder="เช่น 0001" autocomplete="off">
     <label class="remember"><input type="checkbox" id="rememberDevice" checked> จดจำอุปกรณ์นี้</label>
-    <button class="login-btn" id="loginBtn" onclick="doLogin()">เข้าสู่ระบบ</button>
+
+    <div id="passwordArea" style="display:none;">
+      <div class="greet" id="greetText"></div>
+
+      <div id="newPassBlock" style="display:none;">
+        <label>ตั้งรหัสผ่าน (ตัวเลข 4 หลัก) — เข้าครั้งแรก</label>
+        <input type="text" id="newPass" class="pin" inputmode="numeric" maxlength="4" autocomplete="off">
+        <label>ยืนยันรหัสผ่านอีกครั้ง</label>
+        <input type="text" id="newPassConfirm" class="pin" inputmode="numeric" maxlength="4" autocomplete="off">
+      </div>
+
+      <div id="existingPassBlock" style="display:none;">
+        <label>รหัสผ่าน</label>
+        <input type="text" id="existingPass" class="pin" inputmode="numeric" maxlength="4" autocomplete="off">
+      </div>
+    </div>
+
+    <button class="login-btn" id="mainBtn" onclick="handleMainButton()">ถัดไป</button>
     <div class="err-msg" id="errMsg"></div>
   </div>
-  <div class="foot-link">ลืมรหัสพนักงาน? ติดต่อหัวหน้าสาย/แอดมิน</div>
+  <div class="foot-link">ลืมรหัสผ่าน? ติดต่อหัวหน้าสาย/แอดมิน</div>
 </div>
 
 <script>
@@ -108,13 +128,52 @@ if(existing){
   setTimeout(()=>{ document.getElementById('splash').classList.add('hide'); }, 700);
 }
 
-function doLogin(){
-  const code = document.getElementById('empCode').value.trim();
-  const errEl = document.getElementById('errMsg');
-  errEl.classList.remove('show');
-  if(!code){ errEl.textContent = 'กรุณากรอกรหัสพนักงาน'; errEl.classList.add('show'); return; }
+function isValidPin(v){ return /^[0-9]{4}$/.test(v); }
 
-  const btn = document.getElementById('loginBtn');
+function showErr(msg){
+  const el = document.getElementById('errMsg');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearErr(){
+  document.getElementById('errMsg').classList.remove('show');
+}
+
+let pendingEmployee = null; // ผลจาก lookupEmployee ของรหัสพนักงานที่เช็คผ่านล่าสุด
+let checkedCode = null;     // รหัสพนักงานที่ pendingEmployee อ้างถึง (ไว้เทียบว่าถูกแก้ไหม)
+
+function resetPasswordArea(){
+  pendingEmployee = null;
+  checkedCode = null;
+  document.getElementById('passwordArea').style.display = 'none';
+  document.getElementById('mainBtn').textContent = 'ถัดไป';
+}
+
+// ถ้าแก้รหัสพนักงานหลังจากเช็คผ่านไปแล้ว ให้รีเซ็ตช่องรหัสผ่านกลับไปขั้นแรกอัตโนมัติ
+document.getElementById('empCode').addEventListener('input', ()=>{
+  if(pendingEmployee && document.getElementById('empCode').value.trim() !== checkedCode){
+    resetPasswordArea();
+    clearErr();
+  }
+});
+
+// ปุ่มเดียวขับเคลื่อนทุกขั้นตอน: ยังไม่เช็ครหัสพนักงาน -> เช็คก่อน / เช็คแล้ว -> ตั้ง/ยืนยันรหัสผ่าน
+function handleMainButton(){
+  if(!pendingEmployee){
+    doCheckEmployee();
+  } else if(pendingEmployee.hasPassword){
+    doVerifyPassword();
+  } else {
+    doSetPassword();
+  }
+}
+
+function doCheckEmployee(){
+  const code = document.getElementById('empCode').value.trim();
+  clearErr();
+  if(!code){ showErr('กรุณากรอกรหัสพนักงาน'); return; }
+
+  const btn = document.getElementById('mainBtn');
   btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ...';
 
   fetch(`${API_URL}?action=lookupEmployee&code=${encodeURIComponent(code)}`)
@@ -123,30 +182,122 @@ function doLogin(){
       return r.json();
     })
     .then(res=>{
-      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
-      if(res.found){
-        const session = {
-          empCode: res.empCode, name: res.name, nickname: res.nickname,
-          branch: res.branch, branchCode: res.branchCode, loginAt: new Date().toISOString()
-        };
-        const remember = document.getElementById('rememberDevice').checked;
-        const store = remember ? localStorage : sessionStorage;
-        store.setItem(SESSION_KEY, JSON.stringify(session));
-        window.location.href = 'dashboard.html';
-      } else {
-        errEl.textContent = 'ไม่พบรหัสพนักงานนี้ กรุณาตรวจสอบอีกครั้ง';
-        errEl.classList.add('show');
+      btn.disabled = false;
+      if(!res.found){
+        btn.textContent = 'ถัดไป';
+        showErr('ไม่พบรหัสพนักงานนี้ กรุณาตรวจสอบอีกครั้ง');
+        return;
       }
+      if(res.status === 'inactive'){
+        btn.textContent = 'ถัดไป';
+        showErr('บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อแอดมิน');
+        return;
+      }
+      pendingEmployee = res;
+      checkedCode = code;
+      revealPasswordArea(btn);
     })
     .catch(err=>{
-      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
-      errEl.innerHTML = 'เชื่อมต่อระบบไม่สำเร็จ: <br><span style="font-size:11px;">' + (err && err.message ? err.message : String(err)) + '</span>';
-      errEl.classList.add('show');
+      btn.disabled = false; btn.textContent = 'ถัดไป';
+      showErr('เชื่อมต่อระบบไม่สำเร็จ: ' + (err && err.message ? err.message : String(err)));
     });
 }
 
-document.getElementById('empCode').addEventListener('keydown', e=>{
-  if(e.key === 'Enter') doLogin();
+function revealPasswordArea(btn){
+  document.getElementById('passwordArea').style.display = 'block';
+  document.getElementById('greetText').textContent = 'สวัสดีคุณ ' + (pendingEmployee.nickname || pendingEmployee.name);
+
+  if(pendingEmployee.hasPassword){
+    document.getElementById('newPassBlock').style.display = 'none';
+    document.getElementById('existingPassBlock').style.display = 'block';
+    const p = document.getElementById('existingPass');
+    p.value = ''; p.focus();
+    btn.textContent = 'เข้าสู่ระบบ';
+  } else {
+    document.getElementById('newPassBlock').style.display = 'block';
+    document.getElementById('existingPassBlock').style.display = 'none';
+    document.getElementById('newPass').value = '';
+    document.getElementById('newPassConfirm').value = '';
+    document.getElementById('newPass').focus();
+    btn.textContent = 'ตั้งรหัสผ่านและเข้าสู่ระบบ';
+  }
+}
+
+function finalizeLogin(){
+  const session = {
+    empCode: pendingEmployee.empCode, name: pendingEmployee.name, nickname: pendingEmployee.nickname,
+    branch: pendingEmployee.branch, branchCode: pendingEmployee.branchCode,
+    permissionLevel: pendingEmployee.permissionLevel,
+    loginAt: new Date().toISOString(),
+  };
+  const remember = document.getElementById('rememberDevice').checked;
+  const store = remember ? localStorage : sessionStorage;
+  store.setItem(SESSION_KEY, JSON.stringify(session));
+  window.location.href = 'dashboard.html';
+}
+
+function doSetPassword(){
+  clearErr();
+  const p1 = document.getElementById('newPass').value.trim();
+  const p2 = document.getElementById('newPassConfirm').value.trim();
+  if(!isValidPin(p1)){ showErr('รหัสผ่านต้องเป็นตัวเลข 4 หลัก'); return; }
+  if(p1 !== p2){ showErr('รหัสผ่านทั้งสองช่องไม่ตรงกัน กรุณากรอกใหม่'); return; }
+
+  const btn = document.getElementById('mainBtn');
+  btn.disabled = true; btn.textContent = 'กำลังบันทึก...';
+
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'setPassword', data: { empCode: pendingEmployee.empCode, password: p1 } })
+  })
+    .then(r=>r.json())
+    .then(res=>{
+      btn.disabled = false;
+      if(res.success){ finalizeLogin(); }
+      else { btn.textContent = 'ตั้งรหัสผ่านและเข้าสู่ระบบ'; showErr(res.error || 'ตั้งรหัสผ่านไม่สำเร็จ'); }
+    })
+    .catch(err=>{
+      btn.disabled = false; btn.textContent = 'ตั้งรหัสผ่านและเข้าสู่ระบบ';
+      showErr('เชื่อมต่อระบบไม่สำเร็จ: ' + (err && err.message ? err.message : String(err)));
+    });
+}
+
+function doVerifyPassword(){
+  clearErr();
+  const p = document.getElementById('existingPass').value.trim();
+  if(!isValidPin(p)){ showErr('กรุณากรอกรหัสผ่าน 4 หลัก'); return; }
+
+  const btn = document.getElementById('mainBtn');
+  btn.disabled = true; btn.textContent = 'กำลังตรวจสอบ...';
+
+  fetch(API_URL, {
+    method: 'POST',
+    body: JSON.stringify({ action: 'verifyPassword', data: { empCode: pendingEmployee.empCode, password: p } })
+  })
+    .then(r=>r.json())
+    .then(res=>{
+      btn.disabled = false;
+      if(res.success){ finalizeLogin(); }
+      else { btn.textContent = 'เข้าสู่ระบบ'; showErr(res.error || 'รหัสผ่านไม่ถูกต้อง'); }
+    })
+    .catch(err=>{
+      btn.disabled = false; btn.textContent = 'เข้าสู่ระบบ';
+      showErr('เชื่อมต่อระบบไม่สำเร็จ: ' + (err && err.message ? err.message : String(err)));
+    });
+}
+
+// จำกัดให้พิมพ์ได้แค่ตัวเลขในช่องรหัสผ่าน (UX เท่านั้น ไม่ใช่การตรวจสอบหลัก)
+['newPass','newPassConfirm','existingPass'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', e=>{
+    e.target.value = e.target.value.replace(/[^0-9]/g, '').slice(0,4);
+  });
+});
+
+// Enter ที่ช่องไหนก็ได้ ให้ทำงานเหมือนกดปุ่มหลัก (เช็ครหัส หรือ ยืนยันรหัสผ่าน แล้วแต่ขั้นตอนปัจจุบัน)
+['empCode','newPassConfirm','existingPass'].forEach(id=>{
+  document.getElementById(id).addEventListener('keydown', e=>{
+    if(e.key === 'Enter') handleMainButton();
+  });
 });
 </script>
 </body>
